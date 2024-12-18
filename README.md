@@ -9,3 +9,8 @@ The shipping station software for Tindie / Easy Post
 `rackup`
 
 localhost:9292
+
+
+## Example
+
+![](images/demo1.png)
