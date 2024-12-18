@@ -1,0 +1,36 @@
+<h3>Orders</h3>
+
+<h3>Unshipped: <%= orders["meta"]["total_count"] %></h3>
+
+<!-- <%= erb :_pagination, locals: { orders: orders } %> -->
+
+<table>
+
+    <% orders["orders"].each do |order| %>
+        <tr>
+            <td><%= order["number"] %></td>
+            <td><%= order["email"] %></td>
+            <td><%= order["shipping_name"] %></td>
+        </tr>
+    <% end %>
+        
+    
+</table>
+
+
+<ul>
+    <% orders["orders"].each do |order| %>
+      <li>
+        <div class="order-summary">
+          <h2>Order #<%= order["number"] %></h2>
+        </div>
+        <div class="order-details" style="display: none;">
+          <!-- additional order details will go here -->
+        </div>
+        <button class="toggle-details">Show Details</button>
+      </li>
+    <% end %>
+  </ul>
+
+
+<!-- <%= erb :_pagination, locals: { orders: orders } %> -->
