@@ -5,32 +5,65 @@
 <!-- <%= erb :_pagination, locals: { orders: orders } %> -->
 
 <table>
-
+  <thead>
+    <tr>
+      <th>Order Number</th>
+      <th>Date</th>
+      <th>Shipping Name</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
     <% orders["orders"].each do |order| %>
-        <tr>
-            <td><%= order["number"] %></td>
-            <td><%= order["email"] %></td>
-            <td><%= order["shipping_name"] %></td>
-        </tr>
+      <tr>
+        <td><%= order["number"] %></td>
+        <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
+        <td><%= order["shipping_name"] %></td>
+        <td>
+          <button class="expand-btn" data-target="details-<%= order["number"] %>">
+            &#9660; <!-- Down arrow -->
+          </button>
+        </td>
+      </tr>
+      <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
+        <td colspan="4">
+          <div class="order-details">
+            <h4>Order Details</h4>
+            <p><strong>Order Date:</strong> <%= order["created_at"] %></p>
+            <p><strong>Total Amount:</strong> <%= order["total_price"] %></p>
+            <p><strong>Status:</strong> <%= order["status"] %></p>
+            <!-- Add more details as needed -->
+          </div>
+        </td>
+      </tr>
     <% end %>
-        
-    
+  </tbody>
 </table>
 
+<!-- <%= erb :_pagination, locals: { orders: orders } %> -->
 
-<ul>
-    <% orders["orders"].each do |order| %>
-      <li>
-        <div class="order-summary">
-          <h2>Order #<%= order["number"] %></h2>
-        </div>
-        <div class="order-details" style="display: none;">
-          <!-- additional order details will go here -->
-        </div>
-        <button class="toggle-details">Show Details</button>
-      </li>
-    <% end %>
-  </ul>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const expandButtons = document.querySelectorAll('.expand-btn');
+  
+  expandButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetId = this.getAttribute('data-target');
+      const targetRow = document.getElementById(targetId);
+      
+      if (targetRow.style.display === 'none') {
+        targetRow.style.display = 'table-row';
+        this.innerHTML = '&#9650;'; // Up arrow
+      } else {
+        targetRow.style.display = 'none';
+        this.innerHTML = '&#9660;'; // Down arrow
+      }
+    });
+  });
+});
+</script>
 
 
 <!-- <%= erb :_pagination, locals: { orders: orders } %> -->
+
+
