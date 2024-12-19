@@ -15,13 +15,14 @@ class App < Sinatra::Base
         @username = ENV['TINDIE_USERNAME']
         @api_key = ENV['TINDIE_API_KEY']
         @api = TindieApi::TindieOrdersAPI.new(@username, @api_key)
-        orders = @api.get_orders_json(true)
+        orders = @api.get_orders_json(false)
         # orders.sort_by! { |order| DateTime.parse(order["date"]) }.reverse!
 
         puts orders.inspect
 
-        erb :orders, locals: { orders: orders }
-    end
+        erb :orders, locals: { orders: orders, username: @username, api_key: @api_key }
+    end   
+    
     get "/" do
         redirect "/orders"
     end

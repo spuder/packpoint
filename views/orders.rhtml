@@ -22,7 +22,7 @@
         <td>
           <button class="expand-btn" data-target="details-<%= order["number"] %>">
             &#9660; <!-- Down arrow -->
-          </button>
+        </button>
         </td>
       </tr>
       <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
@@ -33,7 +33,13 @@
             <p><strong>Total Amount:</strong> <%= order["total_price"] %></p>
             <p><strong>Status:</strong> <%= order["status"] %></p>
             <!-- Add more details as needed -->
-          </div>
+            <!-- TODO: It would be better to have apikey as a header so it isn't exposed in the url -->
+            <button 
+                onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
+                class="btn btn-primary print-btn">
+                Print Label
+            </button>
+        </div>
         </td>
       </tr>
     <% end %>
