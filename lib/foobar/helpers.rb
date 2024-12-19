@@ -1,7 +1,4 @@
 module Foobar
-    module Helpers
-  
-  
-    end
+  module Helpers
   end
-  
+end

@@ -1,5 +1,5 @@
 source 'https://rubygems.org'
-gem 'easypost', '~> 6.4.1'
-gem 'tindie_api'
-gem 'sinatra'
 gem 'dotenv'
+gem 'easypost', '~> 6.4.1'
+gem 'sinatra'
+gem 'tindie_api'
