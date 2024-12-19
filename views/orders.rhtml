@@ -1,7 +1,8 @@
-<h3>Orders</h3>
-
-<h3>Unshipped: <%= orders["meta"]["total_count"] %></h3>
-
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h3>Orders</h3>
+    <h4>Unshipped: <span style="color: #9b4dca;"><%= orders["meta"]["total_count"] %></span></h4>
+  </div>
+  
 <!-- <%= erb :_pagination, locals: { orders: orders } %> -->
 
 <table>
@@ -40,12 +41,13 @@
                     <% else %>
                     Quantity: <%= item["quantity"] %>
                     <% end %>
-                    | <%= item["options"] %><br>
+                    | <b><%= item["options"] %></b><br>
                     Total: $<%= '%.2f' % item["price_total"] %>
                 </div>
-                <button onclick="window.open('/orders/print/<%= order["number"] %>', '_blank')" 
-                    class="button-primary">
-                Print Packing Slip
+                <button 
+                    onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
+                    class="btn btn-primary print-btn">
+                    Print Packing Slip
                 </button>
               <% end %>
             </div>
