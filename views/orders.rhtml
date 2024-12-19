@@ -15,7 +15,7 @@
     </tr>
   </thead>
   <tbody>
-    <% orders["orders"].each do |order| %>
+    <% orders["orders"].sort_by { |order| DateTime.parse(order["date"]) }.each do |order| %>
       <tr>
         <td><%= order["number"] %></td>
         <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
@@ -33,7 +33,6 @@
               <h4>Items</h4>
               <% order["items"].each do |item| %>
                 <div class="item-details">
-                    <strong><%= item["title"] %></strong><br>
                     <% if item["quantity"].to_i > 1 %>
                     <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
                         Quantity: <%= item["quantity"] %>
