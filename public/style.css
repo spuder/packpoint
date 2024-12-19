@@ -1,0 +1,19 @@
+.details-container {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+  }
+  
+  .items-section, .shipping-section {
+    flex: 1;
+  }
+  
+  .shipping-section {
+    border-left: 1px solid #e1e1e1;
+    padding-left: 2rem;
+  }
+  
+  .item-details {
+    margin-bottom: 1rem;
+  }
+  

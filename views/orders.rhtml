@@ -27,21 +27,43 @@
       </tr>
       <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
         <td colspan="4">
-          <div class="order-details">
-            <h4>Order Details</h4>
-            <p><strong>Order Date:</strong> <%= order["created_at"] %></p>
-            <p><strong>Total Amount:</strong> <%= order["total_price"] %></p>
-            <p><strong>Status:</strong> <%= order["status"] %></p>
-            <!-- Add more details as needed -->
-            <!-- TODO: It would be better to have apikey as a header so it isn't exposed in the url -->
-            <button 
-                onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
-                class="btn btn-primary print-btn">
-                Print Label
-            </button>
-        </div>
+          <div class="details-container">
+            <div class="items-section">
+              <h4>Items</h4>
+              <% order["items"].each do |item| %>
+                <div class="item-details">
+                    <strong><%= item["title"] %></strong><br>
+                    <% if item["quantity"].to_i > 1 %>
+                    <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
+                        Quantity: <%= item["quantity"] %>
+                    </span>
+                    <% else %>
+                    Quantity: <%= item["quantity"] %>
+                    <% end %>
+                    | <%= item["options"] %><br>
+                    Total: $<%= '%.2f' % item["price_total"] %>
+                </div>
+                <button onclick="window.open('/orders/print/<%= order["number"] %>', '_blank')" 
+                    class="button-primary">
+                Print Packing Slip
+                </button>
+              <% end %>
+            </div>
+            <div class="shipping-section">
+              <h4>Shipping</h4>
+              <address>
+                <strong><%= order["shipping_name"] %></strong><br>
+                <%= order["shipping_street"] %><br>
+                <%= order["shipping_city"] %>, <%= order["shipping_state"] %> <%= order["shipping_postcode"] %>
+              </address>
+
+            </div>
+          </div>
         </td>
       </tr>
+      
+      
+      
     <% end %>
   </tbody>
 </table>
