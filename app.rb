@@ -5,6 +5,15 @@ require './lib/foobar/helpers' # TODO: rename foobar
 
 class App < Sinatra::Base
   configure do
+    set :country_flags, {
+      # ISO3166 country codes
+      # TODO: convert to using emoji_flags gem
+      'US' => '🇺🇸',
+      'CA' => '🇨🇦',
+      'GB' => '🇬🇧',
+      'PR' => '🇵🇷',
+      'AU' => '🇦🇺'
+    }
     Dotenv.load
   end
 
@@ -19,7 +28,7 @@ class App < Sinatra::Base
 
     puts orders.inspect
 
-    erb :orders, locals: { orders: orders, username: @username, api_key: @api_key }
+    erb :orders, locals: { orders: orders, username: @username, api_key: @api_key, countries: settings.country_flags }
   end
 
   get '/' do

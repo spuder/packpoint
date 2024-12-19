@@ -12,6 +12,7 @@
       <th>Order Number</th>
       <th>Date</th>
       <th>Shipping Name</th>
+      <th>Country</th>
       <th>Actions</th>
     </tr>
   </thead>
@@ -22,6 +23,7 @@
         <td><%= order["number"] %></td>
         <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
         <td><%= order["shipping_name"] %></td>
+        <td><%= countries[order["shipping_country_code"]] %></td>
         <td>
           <button class="expand-btn" data-target="details-<%= order["number"] %>">
             &#9660; <!-- Down arrow -->
@@ -33,6 +35,7 @@
           <div class="details-container">
             <div class="items-section">
               <h4>Items</h4>
+              Order: <b><%= order["number"] %></b>
               <% order["items"].each do |item| %>
                 <div class="item-details">
                     <% if item["quantity"].to_i > 1 %>
