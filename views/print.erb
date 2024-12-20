@@ -1,0 +1,84 @@
+<h1>Print with QZ Tray</h1>
+<select id="printerSelect">
+  <option value="">Select a printer...</option>
+</select>
+<button onclick="printPDF('https://www.tindie.com/orders/print/508055/')">Print Label</button>
+
+<script>
+// Function to populate printer list
+function loadPrinters() {
+  qz.websocket.connect({
+    host: "localhost",
+    port: {
+      secure: [8181, 8282, 8383, 8484],
+      insecure: [8182]
+    }
+  })
+  .then(function() {
+    return qz.printers.find();
+  })
+  .then(function(printers) {
+    const select = document.getElementById('printerSelect');
+    select.innerHTML = '<option value="">Select a printer...</option>';
+    printers.forEach(function(printer) {
+      const option = document.createElement('option');
+      option.value = printer;
+      option.text = printer;
+      select.appendChild(option);
+    });
+  })
+  .catch(function(err) {
+    console.error(err);
+    alert("Failed to load printers: " + err.message);
+  });
+}
+
+function printPDF(pdfUrl) {
+  const selectedPrinter = document.getElementById('printerSelect').value;
+  if (!selectedPrinter) {
+    alert("Please select a printer first");
+    return;
+  }
+
+  qz.websocket.connect({
+    host: "localhost",
+    port: {
+      secure: [8181, 8282, 8383, 8484],
+      insecure: [8182]
+    }
+  })
+  .then(function() {
+    return qz.printers.find(selectedPrinter);
+  })
+  .then(function(printer) {
+    if (!printer) {
+      throw new Error(`Printer '${selectedPrinter}' not found`);
+    }
+    var config = qz.configs.create(printer);
+    var data = [{
+      type: 'pixel',
+      format: 'pdf',
+      flavor: 'file',
+      data: pdfUrl
+    }];
+    return qz.print(config, data);
+  })
+  .catch(function(err) {
+    console.error(err);
+    if (err.message.includes("NetworkError") || err.message.includes("Failed to fetch")) {
+      alert("Unable to reach QZ Tray. Please check if it's running.");
+    } else if (err.message.includes("Printer")) {
+      alert(err.message);
+    } else {
+      alert(err.message);
+    }
+  })
+  .finally(function() {
+    qz.websocket.disconnect();
+  });
+}
+
+// Load printers when page loads
+document.addEventListener('DOMContentLoaded', loadPrinters);
+
+</script>
