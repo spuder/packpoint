@@ -145,7 +145,57 @@ class App < Sinatra::Base
   end
 
   post '/buy_label/:order_number' do
-    # Your existing buy_label route code...
+    order_number = params[:order_number]
+    order = JSON.parse(params[:order_data])
+
+    if ENV['APP_ENV'] == 'development'
+      client = EasyPost::Client.new(api_key: ENV['EASYPOST_TEST_API_KEY'])
+    elsif ENV['APP_ENV'] == 'production'
+      client = EasyPost::Client.new(api_key: ENV['EASYPOST_PROD_API_KEY'])
+    else
+      raise "Unknown APP_ENV: #{ENV['APP_ENV']}"
+    end
+
+    from_address = client.address.retrieve(ENV['EASYPOST_FROM_ADDRESS'])
+
+    #puts order
+  
+    shipment = client.shipment.create(
+      reference: order_number,
+      to_address: {
+        name: order['shipping_name'],
+        street1: order['shipping_street'],
+        city: order['shipping_city'],
+        state: order['shipping_state'],
+        zip: order['shipping_postcode'],
+        country: order['shipping_country'],
+        phone: order['shipping_phone'],
+        email: order['email']
+      },
+      from_address: from_address,
+      parcel: {
+        length: 6,
+        width: 4,
+        height: 4,
+        weight: 5
+      }
+    )
+
+    bought_shipment = client.shipment.buy(shipment.id, rate: shipment.lowest_rate)
+    tracking_code = bought_shipment.tracking_code
+    label_url = bought_shipment.postage_label.label_url
+
+    # tracking_code = 123456789
+    # label_url = "https://example.com/label.pdf"
+    #puts shipment
+    puts "tracking code is #{tracking_code}"
+
+  
+    content_type :json
+    {
+      tracking_code: tracking_code,
+      label_url: label_url
+    }.to_json
   end
 
   get '/' do

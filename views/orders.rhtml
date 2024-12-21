@@ -1,5 +1,8 @@
 <div style="display: flex; justify-content: space-between; align-items: center;">
     <h3>Orders</h3>
+    <% if ENV['APP_ENV'] == 'development' %>
+    <h5><span style="color: #FF2288;">Development</span></h5>
+    <% end %>
     <h4>Unshipped: <span style="color: #9b4dca;"><%= orders["meta"]["total_count"] %></span></h4>
   </div>
   
@@ -8,27 +11,28 @@
 <table>
   <thead>
     <tr>
+      <th>Actions</th>
       <th>Store</th>
       <th>Order Number</th>
       <th>Date</th>
       <th>Shipping Name</th>
       <th>Country</th>
-      <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     <% orders["orders"].sort_by { |order| DateTime.parse(order["date"]) }.each do |order| %>
       <tr>
-        <td>Tindie.com</td>
-        <td><%= order["number"] %></td>
-        <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
-        <td><%= order["shipping_name"] %></td>
-        <td><%= countries[order["shipping_country_code"]] %></td>
         <td>
           <button class="expand-btn" data-target="details-<%= order["number"] %>">
             &#9660; <!-- Down arrow -->
         </button>
         </td>
+        <td>Tindie.com</td>
+        <td><%= order["number"] %></td>
+        <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
+        <td><%= order["shipping_name"] %></td>
+        <td><%= countries[order["shipping_country_code"]] %></td>
+
       </tr>
       <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
         <td colspan="4">
@@ -48,6 +52,7 @@
                     | <b><%= item["options"] %></b><br>
                     Total: $<%= '%.2f' % item["price_total"] %>
                 </div>
+                <p></p>
                 <button 
                     onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
                     class="btn btn-primary print-btn">
@@ -62,7 +67,7 @@
                 <%= order["shipping_street"] %><br>
                 <%= order["shipping_city"] %>, <%= order["shipping_state"] %> <%= order["shipping_postcode"] %>
               </address>
-            
+              <p></p>
               <% if @purchased_labels[order['number'].to_s] && @purchased_labels[order['number'].to_s][:tracking_code] && @purchased_labels[order['number'].to_s][:label_url] %>
                 <input type="text" class="tracking-code" value="<%= @purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
                 <a href="<%= @purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
