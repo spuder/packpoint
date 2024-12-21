@@ -1,0 +1,107 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://www.tindie.com/api/v1/order/?api_key=<FILTERED>&format=json&shipped=false&username=<TINDIE_USERNAME>
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+      Host:
+      - www.tindie.com
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Sat, 21 Dec 2024 21:12:44 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Server:
+      - nginx
+      Vary:
+      - Accept, Cookie
+      - Accept-Encoding
+      Cache-Control:
+      - max-age=0
+      X-Frame-Options:
+      - SAMEORIGIN
+      Set-Cookie:
+      - first_visit="2024-12-21 13:12:44.796465"; expires=Tue, 19-Dec-2034 21:12:44
+        GMT; HttpOnly; Path=/; Secure
+      - sessionid=i3dvbjpxyo1xqicp2pkvgc5b0x1u1mqb; expires=Sat, 04 Jan 2025 21:12:44
+        GMT; HttpOnly; Max-Age=1209600; Path=/; SameSite=Lax; Secure
+      Expires:
+      - Sat, 21 Dec 2024 21:12:44 GMT
+      X-Content-Type-Options:
+      - nosniff
+    body:
+      encoding: UTF-8
+      string: '{"meta":{"limit":20,"next":null,"offset":0,"previous":null,"total_count":9},"orders":[{"company_title":"","date":"2024-12-12T19:32:52.300477","date_shipped":null,"discount_code":"","email":"jeff.stoltenberg@cummings.test","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"411392","payment":"unpaid","phone":"+629087418969","refunded":false,"shipped":false,"shipping_city":"Blockfurt","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Janyce
+        Morissette DVM","shipping_postcode":"48523-9044","shipping_service":"United
+        States Postal Service USPS Ground Advantage","shipping_state":"IL","shipping_street":"31342
+        Powlowski Shore","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T18:56:05.576141","date_shipped":null,"discount_code":"","email":"deidre@schaden.example","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"535270","payment":"unpaid","phone":"+902786922948","refunded":false,"shipped":false,"shipping_city":"West
+        Natacha","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Minh
+        McKenzie","shipping_postcode":"55665","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"IN","shipping_street":"20232
+        Becker Radial","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T18:07:06.147151","date_shipped":null,"discount_code":"","email":"dee.baumbach@shanahan.example","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"235676","payment":"unpaid","phone":"+847941007400","refunded":false,"shipped":false,"shipping_city":"New
+        Rickborough","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Mario
+        Dickinson","shipping_postcode":"15242","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"OH","shipping_street":"48787
+        Heller Forges","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T17:21:20.295354","date_shipped":null,"discount_code":"","email":"lesia_miller@christiansen-lind.example","items":[{"model_number":"mini-v2-partially-assembled","options":"
+        (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":14.0,"price_unit":14.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"623410","payment":"unpaid","phone":"+494472813656","refunded":false,"shipped":false,"shipping_city":"Ernserside","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Noella
+        Beier","shipping_postcode":"73226","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"418
+        Jacob Highway","total":18.63,"total_ccfee":0.87,"total_discount":"0","total_kickback":0.0,"total_seller":17.65,"total_shipping":5.5,"total_subtotal":19.5,"total_tindiefee":0.98,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:54:05.846902","date_shipped":null,"discount_code":"","email":"marita.watsica@lowe.test","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"548274","payment":"unpaid","phone":"+8522780235079","refunded":false,"shipped":false,"shipping_city":"Port
+        Essie","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Devon
+        Mueller","shipping_postcode":"74266","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"490
+        Mirella Loaf","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:53:22.764202","date_shipped":null,"discount_code":"","email":"sherman.ward@jacobi.example","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"538608","payment":"unpaid","phone":"+653064580340","refunded":false,"shipped":false,"shipping_city":"Sauerside","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Amalia
+        Ankunding","shipping_postcode":"20510-9964","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"FL","shipping_street":"10682
+        Ferne Village","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:51:53.907313","date_shipped":null,"discount_code":"","email":"normand.hoeger@spinka.example","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"631750","payment":"unpaid","phone":"+656685740880","refunded":false,"shipped":false,"shipping_city":"North
+        Susannshire","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Herman
+        Collier","shipping_postcode":"74408-5527","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"NY","shipping_street":"4160
+        Monahan Valley","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:50:30.530558","date_shipped":null,"discount_code":"","email":"molly@olson.test","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"753153","payment":"unpaid","phone":"+636420474102","refunded":false,"shipped":false,"shipping_city":"West
+        Roselle","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Colton
+        Padberg","shipping_postcode":"44242-5676","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"CO","shipping_street":"322
+        Willms Shoal","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T14:01:46.222774","date_shipped":null,"discount_code":"","email":"roy@kuhn-collins.test","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.99,"price_unit":7.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"372454","payment":"unpaid","phone":"+74931537809","refunded":false,"shipped":false,"shipping_city":"Port
+        Cathrinefort","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Gov.
+        Izola Schneider","shipping_postcode":"96554","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"AR","shipping_street":"406
+        Runte Loop","total":12.8,"total_ccfee":0.69,"total_discount":"0","total_kickback":0.0,"total_seller":12.13,"total_shipping":5.5,"total_subtotal":13.49,"total_tindiefee":0.67,"tracking_code":null,"tracking_url":""}]}'
+  recorded_at: Sat, 21 Dec 2024 21:12:44 GMT
+recorded_with: VCR 6.3.1
