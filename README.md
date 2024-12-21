@@ -24,10 +24,11 @@ Then start the server
 localhost:9292
 
 ## Development
+```
+APP_ENV=development rackup
+```
 
-```
-bundle install
-```
+
 
 ## Production
 ```
@@ -35,5 +36,6 @@ APP_ENV=production rackup
 ```
 
 ## Example
+This example uses Faker to generate dummy addresses and usernames. 
 
-![](images/demo1.png)
+![](images/demo2.png)
