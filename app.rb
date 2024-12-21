@@ -31,8 +31,11 @@ class App < Sinatra::Base
     @api_key = ENV['TINDIE_API_KEY']
     @api = TindieApi::TindieOrdersAPI.new(@username, @api_key)
     orders = @api.get_orders_json(false)
+    @purchased_labels = session[:orders] || {}
+    puts "Session data retrieved: #{@purchased_labels.inspect}" # Debug output
 
-    puts orders.inspect
+
+    #puts orders.inspect
 
 
     erb :orders, locals: { orders: orders, username: @username, api_key: @api_key, countries: settings.country_flags }
@@ -78,6 +81,13 @@ class App < Sinatra::Base
     #puts shipment
     puts "tracking code is #{tracking_code}"
 
+    session[:orders] ||= {}
+    session[:orders][order_number] = {
+      tracking_code: tracking_code,
+      label_url: label_url
+    }
+    
+    puts "Session data stored: #{session[:orders].inspect}" # Debug output
   
     content_type :json
     {

@@ -62,13 +62,20 @@
                 <%= order["shipping_street"] %><br>
                 <%= order["shipping_city"] %>, <%= order["shipping_state"] %> <%= order["shipping_postcode"] %>
               </address>
-              <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
-                <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
-                <button type="submit">Buy Shipping Label</button>
-              </form>
-              <input type="text" class="tracking-code" data-order-number="<%= order['number'] %>" placeholder="Tracking Code" readonly>
-              <a href="#" class="label-link" data-order-number="<%= order['number'] %>" target="_blank" style="display:none;">View Label</a>            </div>
-          </div>
+            
+              <% if @purchased_labels[order['number'].to_s] && @purchased_labels[order['number'].to_s][:tracking_code] && @purchased_labels[order['number'].to_s][:label_url] %>
+                <input type="text" class="tracking-code" value="<%= @purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
+                <a href="<%= @purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
+              <% else %>
+                <!-- Show form to buy a shipping label if not processed -->
+                <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
+                  <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
+                  <button type="submit">Buy Shipping Label</button>
+                </form>
+                <input type="text" class="tracking-code" data-order-number="<%= order['number'] %>" placeholder="Tracking Code" readonly>
+                <a href="#" class="label-link" data-order-number="<%= order['number'] %>" target="_blank" style="display:none;">View Label</a>
+              <% end %>
+            </div>            
         </td>
       </tr>
       
@@ -103,8 +110,9 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       const orderNumber = this.action.split('/').pop();
-      const trackingCodeInput = this.closest('.shipping-section').querySelector('.tracking-code');
-      const labelLink = this.closest('.shipping-section').querySelector('.label-link');
+      const shippingSection = this.closest('.shipping-section');
+      const trackingCodeInput = shippingSection.querySelector('.tracking-code');
+      const labelLink = shippingSection.querySelector('.label-link');
 
       fetch(this.action, {
         method: 'POST',
@@ -117,6 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(data => {
         if (data.tracking_code) {
           trackingCodeInput.value = data.tracking_code;
+          trackingCodeInput.style.display = 'inline';
+          this.style.display = 'none'; // Hide the form
         }
         if (data.label_url) {
           labelLink.href = data.label_url;
