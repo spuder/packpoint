@@ -1,6 +1,13 @@
+<p align=center>
+    <img src="./images/logo.png" width="200">
+</p>
+
+
 # PackPoint
 
 The shipping station software for Tindie / Easy Post
+
+
 
 
 

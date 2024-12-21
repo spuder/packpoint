@@ -1,153 +1,136 @@
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h3>Orders</h3>
-    <% if ENV['APP_ENV'] == 'development' %>
-    <h5><span style="color: #FF2288;">Development</span></h5>
-    <% end %>
-    <h4>Unshipped: <span style="color: #9b4dca;"><%= orders["meta"]["total_count"] %></span></h4>
-  </div>
-  
-<!-- <%= erb :_pagination, locals: { orders: orders } %> -->
+  <h3>Orders</h3>
+  <% if ENV['APP_ENV'] == 'development' %>
+  <h5><span style="color: #FF2288;">Development</span></h5>
+  <% end %>
+  <h4>Unshipped: <span style="color: #9b4dca;"><%= orders["meta"]["total_count"] %></span></h4>
+</div>
 
 <table>
-  <thead>
+<thead>
+  <tr>
+    <th>Actions</th>
+    <th>Store</th>
+    <th>Order Number</th>
+    <th>Date</th>
+    <th>Shipping Name</th>
+    <th>Country</th>
+  </tr>
+</thead>
+<tbody>
+  <% orders["orders"].sort_by { |order| DateTime.parse(order["date"]) }.each do |order| %>
     <tr>
-      <th>Actions</th>
-      <th>Store</th>
-      <th>Order Number</th>
-      <th>Date</th>
-      <th>Shipping Name</th>
-      <th>Country</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% orders["orders"].sort_by { |order| DateTime.parse(order["date"]) }.each do |order| %>
-      <tr>
-        <td>
-          <button class="expand-btn" data-target="details-<%= order["number"] %>">
-            &#9660; <!-- Down arrow -->
+      <td>
+        <button class="expand-btn" data-target="details-<%= order["number"] %>">
+          &#9660;
         </button>
-        </td>
-        <td>Tindie.com</td>
-        <td><%= order["number"] %></td>
-        <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
-        <td><%= order["shipping_name"] %></td>
-        <td><%= countries[order["shipping_country_code"]] %></td>
-
-      </tr>
-      <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
-        <td colspan="4">
-          <div class="details-container">
-            <div class="items-section">
-              <h4>Items</h4>
-              Order: <b><%= order["number"] %></b>
-              <% order["items"].each do |item| %>
-                <div class="item-details">
-                    <% if item["quantity"].to_i > 1 %>
-                    <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
-                        Quantity: <%= item["quantity"] %>
-                    </span>
-                    <% else %>
-                    Quantity: <%= item["quantity"] %>
-                    <% end %>
-                    | <b><%= item["options"] %></b><br>
-                    Total: $<%= '%.2f' % item["price_total"] %>
-                </div>
-                <p></p>
-                <button 
-                    onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
-                    class="btn btn-primary print-btn">
-                    Print Packing Slip
-                </button>
-              <% end %>
-            </div>
-            <div class="shipping-section">
-              <h4>Shipping</h4>
-              <address>
-                <strong><%= order["shipping_name"] %></strong><br>
-                <%= order["shipping_street"] %><br>
-                <%= order["shipping_city"] %>, <%= order["shipping_state"] %> <%= order["shipping_postcode"] %>
-              </address>
+      </td>
+      <td>Tindie.com</td>
+      <td><%= order["number"] %></td>
+      <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
+      <td><%= order["shipping_name"] %></td>
+      <td><%= countries[order["shipping_country_code"]] %></td>
+    </tr>
+    <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
+      <td colspan="4">
+        <div class="details-container">
+          <div class="items-section">
+            <h4>Items</h4>
+            Order: <b><%= order["number"] %></b>
+            <% order["items"].each do |item| %>
+              <div class="item-details">
+                  <% if item["quantity"].to_i > 1 %>
+                  <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
+                      Quantity: <%= item["quantity"] %>
+                  </span>
+                  <% else %>
+                  Quantity: <%= item["quantity"] %>
+                  <% end %>
+                  | <b><%= item["options"] %></b><br>
+                  Total: $<%= '%.2f' % item["price_total"] %>
+              </div>
               <p></p>
-              <% if @purchased_labels[order['number'].to_s] && @purchased_labels[order['number'].to_s][:tracking_code] && @purchased_labels[order['number'].to_s][:label_url] %>
-                <input type="text" class="tracking-code" value="<%= @purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
-                <a href="<%= @purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
-              <% else %>
-                <!-- Show form to buy a shipping label if not processed -->
-                <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
-                  <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
-                  <button type="submit">Buy Shipping Label</button>
-                </form>
-                <input type="text" class="tracking-code" data-order-number="<%= order['number'] %>" placeholder="Tracking Code" readonly>
-                <a href="#" class="label-link" data-order-number="<%= order['number'] %>" target="_blank" style="display:none;">View Label</a>
-              <% end %>
-            </div>            
-        </td>
-      </tr>
-      
-      
-      
-    <% end %>
-  </tbody>
+              <button 
+                  onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
+                  class="btn btn-primary print-btn">
+                  Print Packing Slip
+              </button>
+            <% end %>
+          </div>
+          <div class="shipping-section">
+            <h4>Shipping</h4>
+            <address>
+              <strong><%= order["shipping_name"] %></strong><br>
+              <%= order["shipping_street"] %><br>
+              <%= order["shipping_city"] %>, <%= order["shipping_state"] %> <%= order["shipping_postcode"] %>
+            </address>
+            <p></p>
+            <% if purchased_labels[order['number'].to_s] && purchased_labels[order['number'].to_s][:tracking_code] && purchased_labels[order['number'].to_s][:label_url] %>
+              <input type="text" class="tracking-code" value="<%= purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
+              <a href="<%= purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
+            <% else %>
+              <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
+                <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
+                <button type="submit">Buy Shipping Label</button>
+              </form>
+              <input type="text" class="tracking-code" data-order-number="<%= order['number'] %>" placeholder="Tracking Code" readonly>
+              <a href="#" class="label-link" data-order-number="<%= order['number'] %>" target="_blank" style="display:none;">View Label</a>
+            <% end %>
+          </div>            
+      </td>
+    </tr>
+  <% end %>
+</tbody>
 </table>
-
-<!-- <%= erb :_pagination, locals: { orders: orders } %> -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const expandButtons = document.querySelectorAll('.expand-btn');
-  
-  expandButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const targetId = this.getAttribute('data-target');
-      const targetRow = document.getElementById(targetId);
-      
-      if (targetRow.style.display === 'none') {
-        targetRow.style.display = 'table-row';
-        this.innerHTML = '&#9650;'; // Up arrow
-      } else {
-        targetRow.style.display = 'none';
-        this.innerHTML = '&#9660;'; // Down arrow
-      }
-    });
-  });
+const expandButtons = document.querySelectorAll('.expand-btn');
 
-  document.querySelectorAll('.buy-label-form').forEach(form => {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const orderNumber = this.action.split('/').pop();
-      const shippingSection = this.closest('.shipping-section');
-      const trackingCodeInput = shippingSection.querySelector('.tracking-code');
-      const labelLink = shippingSection.querySelector('.label-link');
-
-      fetch(this.action, {
-        method: 'POST',
-        body: new FormData(this),
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.tracking_code) {
-          trackingCodeInput.value = data.tracking_code;
-          trackingCodeInput.style.display = 'inline';
-          this.style.display = 'none'; // Hide the form
-        }
-        if (data.label_url) {
-          labelLink.href = data.label_url;
-          labelLink.style.display = 'inline';
-        }
-      })
-      .catch(error => console.error('Error:', error));
-    });
+expandButtons.forEach(button => {
+  button.addEventListener('click', function() {
+    const targetId = this.getAttribute('data-target');
+    const targetRow = document.getElementById(targetId);
+    
+    if (targetRow.style.display === 'none') {
+      targetRow.style.display = 'table-row';
+      this.innerHTML = '&#9650;';
+    } else {
+      targetRow.style.display = 'none';
+      this.innerHTML = '&#9660;';
+    }
   });
 });
 
+document.querySelectorAll('.buy-label-form').forEach(form => {
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const orderNumber = this.action.split('/').pop();
+    const shippingSection = this.closest('.shipping-section');
+    const trackingCodeInput = shippingSection.querySelector('.tracking-code');
+    const labelLink = shippingSection.querySelector('.label-link');
 
-
+    fetch(this.action, {
+      method: 'POST',
+      body: new FormData(this),
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.tracking_code) {
+        trackingCodeInput.value = data.tracking_code;
+        trackingCodeInput.style.display = 'inline';
+        this.style.display = 'none';
+      }
+      if (data.label_url) {
+        labelLink.href = data.label_url;
+        labelLink.style.display = 'inline';
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  });
+});
+});
 </script>
-
-
-<!-- <%= erb :_pagination, locals: { orders: orders } %> -->
-
-

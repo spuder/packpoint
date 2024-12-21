@@ -1,0 +1,1 @@
+favicon.png credit https://www.flaticon.com/free-icons/product-packaging
