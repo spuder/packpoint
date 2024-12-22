@@ -26,7 +26,7 @@
         </button>
       </td>
       <td>Tindie.com</td>
-      <td><%= order["number"] %></td>
+      <td><b><%= order["number"] %></b></td>
       <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
       <td><%= order["shipping_name"] %></td>
       <td><%= countries[order["shipping_country_code"]] %></td>
@@ -50,6 +50,7 @@
                   Total: $<%= '%.2f' % item["price_total"] %>
               </div>
               <p></p>
+              <a href="https://www.tindie.com/orders/print/<%= order["number"] %>" onclick="window.open(this.href, '_blank'); return false;">Print (manual)</a>
               <button 
                   onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
                   class="btn btn-primary print-btn">
