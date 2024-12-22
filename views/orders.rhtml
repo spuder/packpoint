@@ -50,7 +50,7 @@
                   Total: $<%= '%.2f' % item["price_total"] %>
               </div>
               <p></p>
-              <a href="https://www.tindie.com/orders/print/<%= order["number"] %>" onclick="window.open(this.href, '_blank'); return false;">Print (manual)</a>
+              <a href="https://www.tindie.com/orders/print/<%= order["number"] %>" onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
               <button 
                   onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
                   class="btn btn-primary print-btn">
