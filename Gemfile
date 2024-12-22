@@ -6,6 +6,7 @@ gem 'tindie_api'
 gem 'vcr', '~> 6.3.1'
 gem 'faker'
 gem 'digest'
+gem 'sinatra-cors' 
 
 # group :development, :test do
 # end

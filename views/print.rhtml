@@ -1,0 +1,156 @@
+<h1>Print with QZ Tray</h1>
+<select id="printerSelect">
+  <option value="">Select a printer...</option>
+</select>
+<button 
+  onclick="printPDF('/proxy_print/508055')"
+  class="print-btn"
+  data-order-number="508055">
+  Print Label
+</button>
+
+<script>
+// Function to populate printer list
+document.addEventListener('DOMContentLoaded', function() {
+    // Add printer select element to each print button row
+    document.querySelectorAll('.print-btn').forEach(button => {
+        const printerSelect = document.createElement('select');
+        printerSelect.className = 'printer-select';
+        printerSelect.innerHTML = '<option value="">Select a printer...</option>';
+        button.parentNode.insertBefore(printerSelect, button);
+    });
+
+    // Initialize QZ Tray and load printers
+    loadPrinters();
+
+    // Add click handlers to print buttons
+    document.querySelectorAll('.print-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            // const orderNumber = this.getAttribute('data-order-number');
+            const printerSelect = this.parentNode.querySelector('.printer-select');
+            const selectedPrinter = printerSelect.value;
+            
+            if (!selectedPrinter) {
+                alert("Please select a printer first");
+                return;
+            }
+
+            // Use your Rails backend endpoint instead of direct Tindie URL
+            // const url = `/proxy_print/${orderNumber}`;
+            const url = `/proxy_print/508055`;
+            printPDF(url, selectedPrinter);
+        });
+    });
+});
+
+function loadPrinters() {
+    qz.websocket.connect({
+        host: "localhost",
+        port: {
+            secure: [8181, 8282, 8383, 8484],
+            insecure: [8182]
+        }
+    })
+    .then(function() {
+        return qz.printers.find();
+    })
+    .then(function(printers) {
+        const selects = document.querySelectorAll('.printer-select');
+        selects.forEach(select => {
+            select.innerHTML = '<option value="">Select a printer...</option>';
+            printers.forEach(function(printer) {
+                const option = document.createElement('option');
+                option.value = printer;
+                option.text = printer;
+                select.appendChild(option);
+            });
+        });
+    })
+    .catch(function(err) {
+        console.error(err);
+        alert("Failed to load printers: " + err.message);
+    });
+}
+
+function printPDF(proxyUrl, selectedPrinter) {
+    const loadingIndicator = document.createElement('span');
+    loadingIndicator.textContent = ' Loading...';
+    loadingIndicator.className = 'loading-indicator';
+    
+    const printButton = document.querySelector(`[data-order-number="${orderNumber}"]`);
+    printButton.parentNode.appendChild(loadingIndicator);
+
+    qz.websocket.connect({
+        host: "localhost",
+        port: {
+            secure: [8181, 8282, 8383, 8484],
+            insecure: [8182]
+        }
+    })
+    .then(function() {
+        return qz.printers.find(selectedPrinter);
+    })
+    .then(function(printer) {
+        if (!printer) {
+            throw new Error(`Printer '${selectedPrinter}' not found`);
+        }
+        
+        return fetch(proxyUrl, {
+            method: 'GET',
+            credentials: 'include',  // Include cookies
+            headers: {
+                'Accept': 'application/pdf'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            if (blob.size === 0) {
+                throw new Error('Received empty PDF');
+            }
+            
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        })
+        .then(base64PDF => {
+            var config = qz.configs.create(printer, {
+                orientation: 'portrait',
+                margins: {top: 0, right: 0, bottom: 0, left: 0}
+            });
+            
+            var data = [{
+                type: 'pixel',
+                format: 'pdf',
+                flavor: 'base64',
+                data: base64PDF.split(',')[1]
+            }];
+            
+            return qz.print(config, data);
+        });
+    })
+    .catch(function(err) {
+        console.error('Detailed error:', err);
+        if (err.message.includes("NetworkError") || err.message.includes("Failed to fetch")) {
+            alert("Unable to reach QZ Tray or proxy server. Please check if both are running.");
+        } else if (err.message.includes("Printer")) {
+            alert(err.message);
+        } else {
+            alert(`Printing failed: ${err.message}`);
+        }
+    })
+    .finally(function() {
+        qz.websocket.disconnect();
+        loadingIndicator.remove();
+    });
+}
+
+</script>

@@ -3,6 +3,8 @@ require 'sinatra/base'
 require 'tindie_api'
 require 'dotenv'
 require 'easypost'
+require 'uri'
+require 'tempfile'
 Dir['./lib/**/*.rb'].each { |file| require file }
 
 module ShippingApp
