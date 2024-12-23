@@ -35,6 +35,13 @@ APP_ENV=development rackup
 APP_ENV=production rackup
 ```
 
+## Production Docker/Podman
+
+```bash
+podman build -t spuder/packpoint . 
+podman run  --env-file .env -e APP_ENV=production -e RACK_ENV=production -p 9292:9292 localhost/spuder/packpoint:latest
+```
+
 ## Example
 This example uses Faker to generate dummy addresses and usernames. 
 

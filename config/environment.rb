@@ -18,6 +18,12 @@ module ShippingApp
 
       def setup
         Dotenv.load
+        if ENV['TINDIE_USERNAME'].nil? || ENV['TINDIE_USERNAME'].empty?
+          raise "TINDIE_USERNAME environment variable is empty"
+        end
+        if ENV['TINDIE_API_KEY'].nil? || ENV['TINDIE_API_KEY'].empty?
+          raise "TINDIE_API_KEY environment variable is empty"
+        end
         setup_test_environment if development?
       end
 
