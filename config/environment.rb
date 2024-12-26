@@ -18,6 +18,8 @@ module ShippingApp
 
       def setup
         Dotenv.load
+        ENV['APP_ENV'] ||= 'development'
+        ENV['RACK_ENV'] = ENV['APP_ENV']
         if ENV['TINDIE_USERNAME'].nil? || ENV['TINDIE_USERNAME'].empty?
           raise "TINDIE_USERNAME environment variable is empty"
         end
