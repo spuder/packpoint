@@ -16,21 +16,43 @@ module ShippingApp
         ENV['APP_ENV'] == 'production'
       end
 
+      VALID_ENVIRONMENTS = %w[development test production].freeze
+
       def setup
-        Dotenv.load
-        ENV['APP_ENV'] ||= 'development'
+        begin
+          Dotenv.load
+        rescue Errno::ENOENT
+          puts "Warning: .env file not found. Using existing environment variables."
+        end
+      
+        ENV['APP_ENV'] = ENV['APP_ENV'].to_s.downcase
+        ENV['APP_ENV'] = 'development' unless VALID_ENVIRONMENTS.include?(ENV['APP_ENV'])
         ENV['RACK_ENV'] = ENV['APP_ENV']
-        if ENV['TINDIE_USERNAME'].nil? || ENV['TINDIE_USERNAME'].empty?
-          raise "TINDIE_USERNAME environment variable is empty"
-        end
-        if ENV['TINDIE_API_KEY'].nil? || ENV['TINDIE_API_KEY'].empty?
-          raise "TINDIE_API_KEY environment variable is empty"
-        end
+      
+        puts "Running in #{ENV['APP_ENV']} environment"
+      
+        validate_required_env_vars(['TINDIE_USERNAME', 'TINDIE_API_KEY'])
         setup_test_environment if development?
+        set_easypost_address
+      
+        puts "Application setup completed"
       end
-
+      
+      
       private
-
+      
+      def validate_required_env_vars(vars)
+        vars.each do |var|
+          raise "#{var} environment variable is empty" if ENV[var].to_s.empty?
+        end
+      end
+      
+      def set_easypost_address
+        address_key = development? ? 'EASYPOST_TEST_FROM_ADDRESS' : 'EASYPOST_PROD_FROM_ADDRESS'
+        raise "#{address_key} environment variable is required in #{ENV['APP_ENV']} environment" if ENV[address_key].to_s.empty?
+        ENV['EASYPOST_FROM_ADDRESS'] = ENV[address_key]
+      end
+      
       def setup_test_environment
         require 'vcr'
         require 'webmock'
