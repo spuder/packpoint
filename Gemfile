@@ -8,6 +8,7 @@ gem 'webmock'
 gem 'faker'
 gem 'digest'
 gem 'rackup'
+gem 'cupsffi'
 
 # group :development, :test do
 # end

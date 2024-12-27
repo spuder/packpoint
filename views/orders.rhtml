@@ -69,6 +69,9 @@
             <% if purchased_labels[order['number'].to_s] && purchased_labels[order['number'].to_s][:tracking_code] && purchased_labels[order['number'].to_s][:label_url] %>
               <input type="text" class="tracking-code" value="<%= purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
               <a href="<%= purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
+              <button id="printLabelBtn">Print Shipping Label</button>
+              <!-- todo make print result a popup -->
+              <!-- <div id="printResult"></div>  -->
             <% else %>
               <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
                 <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
@@ -76,6 +79,7 @@
               </form>
               <input type="text" class="tracking-code" data-order-number="<%= order['number'] %>" placeholder="Tracking Code" readonly>
               <a href="#" class="label-link" data-order-number="<%= order['number'] %>" target="_blank" style="display:none;">View Label</a>
+
             <% end %>
           </div>            
       </td>
@@ -133,5 +137,23 @@ document.querySelectorAll('.buy-label-form').forEach(form => {
     .catch(error => console.error('Error:', error));
   });
 });
+
+document.getElementById('printLabelBtn').addEventListener('click', function() {
+  fetch('/print_label', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('printResult').textContent = data.message;
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+    document.getElementById('printResult').textContent = 'An error occurred while printing';
+  });
+});
+
 });
 </script>

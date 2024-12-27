@@ -9,11 +9,15 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
+    cupsffi (0.1.9)
+      ffi
     digest (3.1.1)
     dotenv (3.1.7)
     easypost (6.4.1)
     faker (3.5.1)
       i18n (>= 1.8.11, < 2)
+    ffi (1.17.0)
+    ffi (1.17.0-arm64-darwin)
     hashdiff (1.1.2)
     i18n (1.14.6)
       concurrent-ruby (~> 1.0)
@@ -56,6 +60,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  cupsffi
   digest
   dotenv
   easypost (~> 6.4.1)

@@ -1,4 +1,13 @@
 # app.rb
+
+# Monkey patch until this is merged
+# https://github.com/nehresma/cupsffi/pull/30      `
+class File
+  def self.exists?(filename)
+    self.exist?(filename)
+  end
+end
+
 module ShippingApp
   class App < Sinatra::Base
     enable :sessions
@@ -63,6 +72,20 @@ module ShippingApp
       
       content_type :json
       result.to_json
+    end
+
+
+    post '/print_label' do
+      content_type :json
+      begin
+        printer = CupsPrinter.new("PM-241-BT", :hostname => "packpoint.local", :port => 631)
+        file_path = 'testlabel1.png'
+        job = printer.print_file(file_path)
+        status = job.status
+        { success: true, message: "Print job status: #{status}" }.to_json
+      rescue => e
+        { success: false, message: "Error: #{e.message}" }.to_json
+      end
     end
 
     get '/' do
