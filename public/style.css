@@ -1,19 +1,85 @@
 .details-container {
-    display: flex;
-    gap: 2rem;
-    padding: 1rem;
-  }
-  
-  .items-section, .shipping-section {
-    flex: 1;
-  }
-  
-  .shipping-section {
-    border-left: 1px solid #e1e1e1;
-    padding-left: 2rem;
-  }
-  
-  .item-details {
-    margin-bottom: 1rem;
-  }
-  
+  display: flex;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.items-section,
+.shipping-section {
+  flex: 1;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  margin-bottom: 20px;
+}
+
+/* .shipping-section {
+  border-left: 1px solid #e1e1e1;
+  padding-left: 2rem;
+} */
+
+.item-details {
+  margin-bottom: 1rem;
+}
+
+.items-section,
+.shipping-section h4 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  /* color: #333; */
+}
+
+.shipping-section address {
+  font-style: normal;
+  line-height: 1.5;
+  margin-bottom: 15px;
+}
+
+.shipping-section .tracking-code {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+.shipping-section a {
+  display: inline-block;
+  margin-right: 16px;  /* Increased spacing between View Label and button */
+  /* color: #007bff; */
+  text-decoration: none;
+  vertical-align: middle;  /* Align with button */
+}
+
+/* .shipping-section button {
+  display: inline-block;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #6c63ff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  vertical-align: middle;  /* Align with link */
+}
+
+.shipping-section button:hover {
+  /* background-color: #5a54d6; */
+} */
+
+/* .shipping-section .buy-label-form {
+  margin-top: 15px;
+} */
+
+/* Add flex container for better alignment */
+.shipping-section .actions-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 10px;
+}
