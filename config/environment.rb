@@ -4,6 +4,8 @@ require 'tindie_api'
 require 'dotenv'
 require 'easypost'
 require 'cupsffi'
+require 'open-uri'
+require 'fileutils'
 
 Dir['./lib/**/*.rb'].each { |file| require file }
 

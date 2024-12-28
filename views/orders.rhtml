@@ -51,6 +51,7 @@
               </div>
               <p></p>
               <a href="https://www.tindie.com/orders/print/<%= order["number"] %>" onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
+              <br>
               <button 
                   onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
                   class="btn btn-primary print-btn">
@@ -68,10 +69,13 @@
             <p></p>
             <% if purchased_labels[order['number'].to_s] && purchased_labels[order['number'].to_s][:tracking_code] && purchased_labels[order['number'].to_s][:label_url] %>
               <input type="text" class="tracking-code" value="<%= purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
+              <br>
               <a href="<%= purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
-              <button id="printLabelBtn">Print Shipping Label</button>
-              <!-- todo make print result a popup -->
-              <!-- <div id="printResult"></div>  -->
+              <br></br>
+              <button id="printLabelBtn-<%= order['number'] %>" class="print-label-btn" data-label-url="<%= purchased_labels[order['number'].to_s][:label_url] %>">
+                PRINT SHIPPING LABEL
+              </button>
+            
             <% else %>
               <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
                 <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
@@ -114,6 +118,7 @@ document.querySelectorAll('.buy-label-form').forEach(form => {
     const shippingSection = this.closest('.shipping-section');
     const trackingCodeInput = shippingSection.querySelector('.tracking-code');
     const labelLink = shippingSection.querySelector('.label-link');
+    const printButton = shippingSection.querySelector(`#printLabelBtn-${orderNumber}`);
 
     fetch(this.action, {
       method: 'POST',
@@ -132,28 +137,58 @@ document.querySelectorAll('.buy-label-form').forEach(form => {
       if (data.label_url) {
         labelLink.href = data.label_url;
         labelLink.style.display = 'inline';
+        
+        // Create and add print button
+        const printButton = document.createElement('button');
+        printButton.id = `printLabelBtn-${orderNumber}`;
+        printButton.className = 'print-label-btn';
+        printButton.setAttribute('data-label-url', data.label_url);
+        printButton.textContent = 'PRINT SHIPPING LABEL';
+        
+        // Add the print button after the label link
+        labelLink.parentNode.insertBefore(printButton, labelLink.nextSibling);
+        
+        // Add event listener to the new button
+        printButton.addEventListener('click', function() {
+          const labelUrl = this.getAttribute('data-label-url');
+          fetch('/print_label', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              label_url: labelUrl
+            })
+          })
+          .then(response => response.json())
+          .catch(error => console.error('Error:', error));
+        });
       }
     })
     .catch(error => console.error('Error:', error));
   });
 });
 
-document.getElementById('printLabelBtn').addEventListener('click', function() {
-  fetch('/print_label', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    document.getElementById('printResult').textContent = data.message;
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-    document.getElementById('printResult').textContent = 'An error occurred while printing';
+
+document.querySelectorAll('[id^="printLabelBtn-"]').forEach(button => {
+  button.addEventListener('click', function() {
+    const labelUrl = this.getAttribute('data-label-url');
+    
+    fetch('/print_label', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        label_url: labelUrl
+      })
+    })
+    .then(response => response.json())
+    .catch(error => console.error('Error:', error));
   });
 });
+
+
 
 });
 </script>

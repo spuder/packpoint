@@ -78,15 +78,38 @@ module ShippingApp
     post '/print_label' do
       content_type :json
       begin
+        data = JSON.parse(request.body.read)
+        puts "Downloading label: #{data}"
+        label_url = data['label_url']
+        
+        # Create cache directory if it doesn't exist
+        cache_dir = File.join(Dir.pwd, 'cache', 'labels')
+        FileUtils.mkdir_p(cache_dir)
+        
+        # Extract original filename from URL
+        original_filename = File.basename(URI.parse(label_url).path)
+        cached_file = File.join(cache_dir, original_filename)
+        
+        # Download and cache the file if it doesn't exist
+        unless File.exist?(cached_file)
+          URI.open(label_url) do |url_file|
+            File.open(cached_file, 'wb') do |file|
+              puts "Caching label: #{cached_file}"
+              file.write(url_file.read)
+            end
+          end
+        end
+        
+        # Rest of your code remains the same
         printer = CupsPrinter.new("PM-241-BT", :hostname => "packpoint.local", :port => 631)
-        file_path = 'testlabel1.png'
-        job = printer.print_file(file_path)
+        job = printer.print_file(cached_file)
         status = job.status
+        
         { success: true, message: "Print job status: #{status}" }.to_json
       rescue => e
         { success: false, message: "Error: #{e.message}" }.to_json
       end
-    end
+    end    
 
     get '/' do
       redirect '/orders'

@@ -83,3 +83,13 @@
   gap: 15px;
   margin-top: 10px;
 }
+
+.print-label-btn {
+  background-color: #9b4dca;
+  color: white;
+  border: none;
+  /* padding: 10px 20px; */
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+}
