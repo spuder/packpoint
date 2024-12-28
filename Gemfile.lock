@@ -47,7 +47,7 @@ GEM
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
     tilt (2.5.0)
-    tindie_api (0.1.9)
+    tindie_api (0.1.10)
     vcr (6.3.1)
       base64
     webmock (3.24.0)

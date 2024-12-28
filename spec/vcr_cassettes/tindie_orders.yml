@@ -2,7 +2,7 @@
 http_interactions:
 - request:
     method: get
-    uri: https://www.tindie.com/api/v1/order/?api_key=<FILTERED>&format=json&shipped=false&username=<TINDIE_USERNAME>
+    uri: https://www.tindie.com/api/v1/order/?api_key=<FILTERED>&format=json&limit=50&offset=0&shipped=true&username=<TINDIE_USERNAME>
     body:
       encoding: US-ASCII
       string: ''
@@ -21,7 +21,7 @@ http_interactions:
       message: OK
     headers:
       Date:
-      - Sat, 21 Dec 2024 21:12:44 GMT
+      - Sat, 28 Dec 2024 20:44:43 GMT
       Content-Type:
       - application/json; charset=utf-8
       Transfer-Encoding:
@@ -38,70 +38,194 @@ http_interactions:
       X-Frame-Options:
       - SAMEORIGIN
       Set-Cookie:
-      - first_visit="2024-12-21 13:12:44.796465"; expires=Tue, 19-Dec-2034 21:12:44
+      - first_visit="2024-12-28 12:44:43.146561"; expires=Tue, 26-Dec-2034 20:44:43
         GMT; HttpOnly; Path=/; Secure
-      - sessionid=i3dvbjpxyo1xqicp2pkvgc5b0x1u1mqb; expires=Sat, 04 Jan 2025 21:12:44
+      - sessionid=k0104qz4vk9jrj1p0cjdm6andhi4e1qj; expires=Sat, 11 Jan 2025 20:44:43
         GMT; HttpOnly; Max-Age=1209600; Path=/; SameSite=Lax; Secure
       Expires:
-      - Sat, 21 Dec 2024 21:12:44 GMT
+      - Sat, 28 Dec 2024 20:44:43 GMT
       X-Content-Type-Options:
       - nosniff
     body:
       encoding: UTF-8
-      string: '{"meta":{"limit":20,"next":null,"offset":0,"previous":null,"total_count":9},"orders":[{"company_title":"","date":"2024-12-12T19:32:52.300477","date_shipped":null,"discount_code":"","email":"jeff.stoltenberg@cummings.test","items":[{"model_number":"mini-v2-pcb","options":"
+      string: '{"meta":{"limit":50,"next":null,"offset":0,"previous":null,"total_count":26},"orders":[{"company_title":"","date":"2024-12-12T19:32:52.300477","date_shipped":"2024-12-24T13:27:17.718697","discount_code":"","email":"gregory_heathcote@heller-hayes.example","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"411392","payment":"unpaid","phone":"+629087418969","refunded":false,"shipped":false,"shipping_city":"Blockfurt","shipping_country":"United
-        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Janyce
-        Morissette DVM","shipping_postcode":"48523-9044","shipping_service":"United
-        States Postal Service USPS Ground Advantage","shipping_state":"IL","shipping_street":"31342
-        Powlowski Shore","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T18:56:05.576141","date_shipped":null,"discount_code":"","email":"deidre@schaden.example","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"668133","payment":"unpaid","phone":"+347424581915","refunded":false,"shipped":false,"shipping_city":"New
+        Clora","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Karl
+        Little DVM","shipping_postcode":"88275-2242","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"IL","shipping_street":"62163
+        Dixie Orchard","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304892423","tracking_url":""},{"company_title":"","date":"2024-12-12T18:56:05.576141","date_shipped":"2024-12-24T13:28:12.673072","discount_code":"","email":"colin@bernier.example","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"535270","payment":"unpaid","phone":"+902786922948","refunded":false,"shipped":false,"shipping_city":"West
-        Natacha","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Minh
-        McKenzie","shipping_postcode":"55665","shipping_service":"United States Postal
-        Service USPS Ground Advantage","shipping_state":"IN","shipping_street":"20232
-        Becker Radial","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T18:07:06.147151","date_shipped":null,"discount_code":"","email":"dee.baumbach@shanahan.example","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"320196","payment":"unpaid","phone":"+642912475149","refunded":false,"shipped":false,"shipping_city":"Hunterside","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Curtis
+        Hirthe","shipping_postcode":"84817-1721","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"IN","shipping_street":"9995
+        Kassulke Cliff","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304892362","tracking_url":""},{"company_title":"","date":"2024-12-12T18:28:12.031478","date_shipped":"2024-12-14T18:38:44.291540","discount_code":"","email":"wade_hand@walker.example","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"235676","payment":"unpaid","phone":"+847941007400","refunded":false,"shipped":false,"shipping_city":"New
-        Rickborough","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Mario
-        Dickinson","shipping_postcode":"15242","shipping_service":"United States Postal
-        Service USPS Ground Advantage","shipping_state":"OH","shipping_street":"48787
-        Heller Forges","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T17:21:20.295354","date_shipped":null,"discount_code":"","email":"lesia_miller@christiansen-lind.example","items":[{"model_number":"mini-v2-partially-assembled","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"},{"model_number":"mini-v2-partially-assembled","options":"
         (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":14.0,"price_unit":14.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"623410","payment":"unpaid","phone":"+494472813656","refunded":false,"shipped":false,"shipping_city":"Ernserside","shipping_country":"United
-        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Noella
-        Beier","shipping_postcode":"73226","shipping_service":"United States Postal
-        Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"418
-        Jacob Highway","total":18.63,"total_ccfee":0.87,"total_discount":"0","total_kickback":0.0,"total_seller":17.65,"total_shipping":5.5,"total_subtotal":19.5,"total_tindiefee":0.98,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:54:05.846902","date_shipped":null,"discount_code":"","email":"marita.watsica@lowe.test","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"388876","payment":"unpaid","phone":"+466607290614","refunded":false,"shipped":false,"shipping_city":"Theodoreton","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Catrice
+        Kuhic","shipping_postcode":"35706","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"CO","shipping_street":"744
+        Tina Key","total":25.43,"total_ccfee":1.07,"total_discount":"0","total_kickback":0.0,"total_seller":24.11,"total_shipping":5.5,"total_subtotal":26.5,"total_tindiefee":1.32,"tracking_code":"9400136208271299467064","tracking_url":""},{"company_title":"","date":"2024-12-12T18:07:06.147151","date_shipped":"2024-12-24T13:28:07.712941","discount_code":"","email":"jeannie_kub@dickens.test","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"548274","payment":"unpaid","phone":"+8522780235079","refunded":false,"shipped":false,"shipping_city":"Port
-        Essie","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Devon
-        Mueller","shipping_postcode":"74266","shipping_service":"United States Postal
-        Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"490
-        Mirella Loaf","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:53:22.764202","date_shipped":null,"discount_code":"","email":"sherman.ward@jacobi.example","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"233620","payment":"unpaid","phone":"+467517028998","refunded":false,"shipped":false,"shipping_city":"Port
+        Kanishaside","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Remona
+        Koss","shipping_postcode":"81677","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"OH","shipping_street":"93111
+        Ortiz Neck","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304892331","tracking_url":""},{"company_title":"","date":"2024-12-12T17:21:20.295354","date_shipped":"2024-12-24T13:28:01.840996","discount_code":"","email":"jody@bode-jerde.test","items":[{"model_number":"mini-v2-partially-assembled","options":"
+        (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":14.0,"price_unit":14.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"357886","payment":"unpaid","phone":"+398294049779","refunded":false,"shipped":false,"shipping_city":"North
+        Bud","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Marcela
+        Corkery","shipping_postcode":"88051-4792","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"256
+        Bonnie Park","total":18.63,"total_ccfee":0.87,"total_discount":"0","total_kickback":0.0,"total_seller":17.65,"total_shipping":5.5,"total_subtotal":19.5,"total_tindiefee":0.98,"tracking_code":"9400136208271304892300","tracking_url":""},{"company_title":"","date":"2024-12-12T16:45:34.153985","date_shipped":"2024-12-19T09:20:47.724609","discount_code":"","email":"diane.reilly@beer.example","items":[{"model_number":"mini-v2-partially-assembled","options":"
+        (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":14.0,"price_unit":14.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"Itaque earum
+        sed et.","number":"175595","payment":"unpaid","phone":"+76447060045","refunded":false,"shipped":false,"shipping_city":"Murrayview","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Marivel
+        Hoeger","shipping_postcode":"29393-3527","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"CO","shipping_street":"60759
+        Hartmann Junction","total":18.63,"total_ccfee":0.87,"total_discount":"0","total_kickback":0.0,"total_seller":17.65,"total_shipping":5.5,"total_subtotal":19.5,"total_tindiefee":0.98,"tracking_code":"9400136208271302865887","tracking_url":""},{"company_title":"","date":"2024-12-12T15:54:05.846902","date_shipped":"2024-12-24T13:27:56.740408","discount_code":"","email":"heriberto@rice.example","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"538608","payment":"unpaid","phone":"+653064580340","refunded":false,"shipped":false,"shipping_city":"Sauerside","shipping_country":"United
-        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Amalia
-        Ankunding","shipping_postcode":"20510-9964","shipping_service":"United States
-        Postal Service USPS Ground Advantage","shipping_state":"FL","shipping_street":"10682
-        Ferne Village","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:51:53.907313","date_shipped":null,"discount_code":"","email":"normand.hoeger@spinka.example","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"811359","payment":"unpaid","phone":"+201462878844","refunded":false,"shipped":false,"shipping_city":"Damionmouth","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Alanna
+        Pouros","shipping_postcode":"04501","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"44162
+        Boyer Road","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304892041","tracking_url":""},{"company_title":"","date":"2024-12-12T15:53:34.800710","date_shipped":"2024-12-19T09:12:01.988173","discount_code":"","email":"augustus@douglas-block.example","items":[{"model_number":"mini-v2-partially-assembled","options":"
+        (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":14.0,"price_unit":14.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"995925","payment":"unpaid","phone":"+867899861181","refunded":false,"shipped":false,"shipping_city":"Kassulketon","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Jarrod
+        Klein","shipping_postcode":"93270-1531","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"NJ","shipping_street":"47807
+        Runolfsdottir Loop","total":18.63,"total_ccfee":0.87,"total_discount":"0","total_kickback":0.0,"total_seller":17.65,"total_shipping":5.5,"total_subtotal":19.5,"total_tindiefee":0.98,"tracking_code":"9400136208271302853075","tracking_url":""},{"company_title":"","date":"2024-12-12T15:53:22.764202","date_shipped":"2024-12-24T13:27:51.572096","discount_code":"","email":"billie@jacobi-cormier.example","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"631750","payment":"unpaid","phone":"+656685740880","refunded":false,"shipped":false,"shipping_city":"North
-        Susannshire","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Herman
-        Collier","shipping_postcode":"74408-5527","shipping_service":"United States
-        Postal Service USPS Ground Advantage","shipping_state":"NY","shipping_street":"4160
-        Monahan Valley","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T15:50:30.530558","date_shipped":null,"discount_code":"","email":"molly@olson.test","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"181685","payment":"unpaid","phone":"+927990864202","refunded":false,"shipped":false,"shipping_city":"North
+        Pierre","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Faye
+        Batz","shipping_postcode":"56400-8359","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"FL","shipping_street":"5939
+        Trudy Unions","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304891983","tracking_url":""},{"company_title":"","date":"2024-12-12T15:52:02.798679","date_shipped":"2024-12-16T16:10:47.738645","discount_code":"","email":"gearldine.nienow@lakin-ortiz.example","items":[{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":19.0,"price_unit":19.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"386459","payment":"unpaid","phone":"+442740506361","refunded":false,"shipped":false,"shipping_city":"Port
+        Gilview","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Ariel
+        Muller","shipping_postcode":"84933","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"CO","shipping_street":"977
+        Catherin Mountains","total":23.49,"total_ccfee":1.01,"total_discount":"0","total_kickback":0.0,"total_seller":22.27,"total_shipping":5.5,"total_subtotal":24.5,"total_tindiefee":1.22,"tracking_code":"9400136208271301013616","tracking_url":""},{"company_title":"","date":"2024-12-12T15:51:53.907313","date_shipped":"2024-12-24T13:27:46.615294","discount_code":"","email":"jude.schulist@torp-schoen.test","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"753153","payment":"unpaid","phone":"+636420474102","refunded":false,"shipped":false,"shipping_city":"West
-        Roselle","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Colton
-        Padberg","shipping_postcode":"44242-5676","shipping_service":"United States
-        Postal Service USPS Ground Advantage","shipping_state":"CO","shipping_street":"322
-        Willms Shoal","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":null,"tracking_url":""},{"company_title":"","date":"2024-12-12T14:01:46.222774","date_shipped":null,"discount_code":"","email":"roy@kuhn-collins.test","items":[{"model_number":"mini-v2-pcb","options":"
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"151893","payment":"unpaid","phone":"+543994549588","refunded":false,"shipped":false,"shipping_city":"Muishire","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Francesco
+        Jones","shipping_postcode":"38692-8340","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"NY","shipping_street":"983
+        Bernier Spurs","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304891891","tracking_url":""},{"company_title":"","date":"2024-12-12T15:50:30.530558","date_shipped":"2024-12-24T13:27:40.627549","discount_code":"","email":"audie_lindgren@padberg-ullrich.example","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.0,"price_unit":7.0,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"244120","payment":"unpaid","phone":"+555395754226","refunded":false,"shipped":false,"shipping_city":"South
+        Ardellaside","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Lindsey
+        Russel","shipping_postcode":"74688","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"CO","shipping_street":"903
+        Kessler Glens","total":11.84,"total_ccfee":0.66,"total_discount":"0","total_kickback":0.0,"total_seller":11.22,"total_shipping":5.5,"total_subtotal":12.5,"total_tindiefee":0.62,"tracking_code":"9400136208271304891754","tracking_url":""},{"company_title":"","date":"2024-12-12T14:01:46.222774","date_shipped":"2024-12-23T15:11:09.224566","discount_code":"","email":"arthur_vandervort@bosco.example","items":[{"model_number":"mini-v2-pcb","options":"
         (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.99,"price_unit":7.99,"product":"OpenSpool
-        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"372454","payment":"unpaid","phone":"+74931537809","refunded":false,"shipped":false,"shipping_city":"Port
-        Cathrinefort","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Gov.
-        Izola Schneider","shipping_postcode":"96554","shipping_service":"United States
-        Postal Service USPS Ground Advantage","shipping_state":"AR","shipping_street":"406
-        Runte Loop","total":12.8,"total_ccfee":0.69,"total_discount":"0","total_kickback":0.0,"total_seller":12.13,"total_shipping":5.5,"total_subtotal":13.49,"total_tindiefee":0.67,"tracking_code":null,"tracking_url":""}]}'
-  recorded_at: Sat, 21 Dec 2024 21:12:44 GMT
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"Cum sint
+        fugit nihil.","number":"362769","payment":"unpaid","phone":"+918189265828","refunded":false,"shipped":false,"shipping_city":"Goyettechester","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Pauletta
+        Mante","shipping_postcode":"09232","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"AR","shipping_street":"706
+        Bryon Manor","total":12.8,"total_ccfee":0.69,"total_discount":"0","total_kickback":0.0,"total_seller":12.13,"total_shipping":5.5,"total_subtotal":13.49,"total_tindiefee":0.67,"tracking_code":"9400136208271304570543","tracking_url":""},{"company_title":"","date":"2024-12-12T13:48:36.325053","date_shipped":"2024-12-16T16:11:02.038150","discount_code":"","email":"robbie@bernier-sanford.example","items":[{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":15.99,"price_unit":15.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"560958","payment":"unpaid","phone":"+864957792858","refunded":false,"shipped":false,"shipping_city":"East
+        Justinfurt","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Raymundo
+        Feil","shipping_postcode":"53572","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"IL","shipping_street":"841
+        Jast Turnpike","total":20.57,"total_ccfee":0.92,"total_discount":"0","total_kickback":0.0,"total_seller":19.5,"total_shipping":5.5,"total_subtotal":21.49,"total_tindiefee":1.07,"tracking_code":"9400136208271301013609","tracking_url":""},{"company_title":"","date":"2024-12-12T13:47:18.598752","date_shipped":"2024-12-16T16:10:23.230065","discount_code":"","email":"mandy.jaskolski@torp-glover.example","items":[{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":15.99,"price_unit":15.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"Voluptas
+        reprehenderit earum et.","number":"377273","payment":"unpaid","phone":"+11095896823","refunded":false,"shipped":false,"shipping_city":"Corkeryton","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Eliseo
+        Frami","shipping_postcode":"90725-1477","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"CA","shipping_street":"87048
+        Simon Ville","total":20.57,"total_ccfee":0.92,"total_discount":"0","total_kickback":0.0,"total_seller":19.5,"total_shipping":5.5,"total_subtotal":21.49,"total_tindiefee":1.07,"tracking_code":"9400136208271301041244","tracking_url":""},{"company_title":"","date":"2024-12-12T13:28:51.729285","date_shipped":"2024-12-16T16:11:10.185762","discount_code":"","email":"norberto_halvorson@koss-sanford.test","items":[{"model_number":"mini","options":"
+        (OpenSpool Mini: OpenSpool stickers (10))","pre_order":false,"price_total":8.99,"price_unit":8.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"},{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":15.99,"price_unit":15.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"119605","payment":"unpaid","phone":"+552271899019","refunded":false,"shipped":false,"shipping_city":"Angelville","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Leif
+        Klein VM","shipping_postcode":"16076-5525","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"NC","shipping_street":"1139
+        Kiehn Shores","total":29.3,"total_ccfee":1.18,"total_discount":"0","total_kickback":0.0,"total_seller":27.78,"total_shipping":5.5,"total_subtotal":30.48,"total_tindiefee":1.52,"tracking_code":"9400136208271300997429","tracking_url":""},{"company_title":"","date":"2024-12-12T03:09:15.867476","date_shipped":"2024-12-14T20:51:00.533786","discount_code":"","email":"aisha_mueller@parker.example","items":[{"model_number":"mini","options":"
+        (OpenSpool Mini: OpenSpool stickers (10))","pre_order":false,"price_total":8.99,"price_unit":8.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"},{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.99,"price_unit":7.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"Saepe distinctio
+        voluptas illum.","number":"611952","payment":"unpaid","phone":"+929450148133","refunded":false,"shipped":false,"shipping_city":"West
+        Dannieberg","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Ms.
+        Shawn Keebler","shipping_postcode":"45736-8633","shipping_service":"United
+        States Postal Service USPS Ground Advantage","shipping_state":"NY","shipping_street":"793
+        Walter Cove","total":21.53,"total_ccfee":0.95,"total_discount":"0","total_kickback":0.0,"total_seller":20.41,"total_shipping":5.5,"total_subtotal":22.48,"total_tindiefee":1.12,"tracking_code":"9400136208271299479630","tracking_url":""},{"company_title":"","date":"2024-12-11T21:57:50.404204","date_shipped":"2024-12-14T19:58:16.840834","discount_code":"","email":"dania_turner@bednar-wilderman.test","items":[{"model_number":"mini","options":"
+        (OpenSpool Mini: NFC 215 tags (4))","pre_order":false,"price_total":17.98,"price_unit":8.99,"product":"OpenSpool
+        - Mini","quantity":2,"sku":"36746","status":"billed"}],"message":"Harum qui
+        eos porro.","number":"196748","payment":"unpaid","phone":"+868106576654","refunded":false,"shipped":false,"shipping_city":"Bodemouth","shipping_country":"Australia","shipping_country_code":"AU","shipping_instructions":"","shipping_name":"Flor
+        Price","shipping_postcode":"54403-8980","shipping_service":"United States
+        Postal Service First Class Package International Service","shipping_state":"WA","shipping_street":"41782
+        Turner Shoal","total":38.28,"total_ccfee":1.7,"total_discount":"0","total_kickback":0.0,"total_seller":36.28,"total_shipping":22.0,"total_subtotal":39.98,"total_tindiefee":2.0,"tracking_code":"LM323911312US","tracking_url":""},{"company_title":"","date":"2024-12-11T20:41:21.648175","date_shipped":"2024-12-14T19:41:44.457787","discount_code":"","email":"alfonso.goldner@kuphal.example","items":[{"model_number":"mini","options":"
+        (OpenSpool Mini: NFC 215 tags (4))","pre_order":false,"price_total":8.99,"price_unit":8.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"},{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":15.99,"price_unit":15.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"Non doloremque
+        commodi sit.","number":"444237","payment":"unpaid","phone":"+814459818301","refunded":false,"shipped":false,"shipping_city":"Richborough","shipping_country":"United
+        States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Zula
+        Lueilwitz","shipping_postcode":"20501-8499","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"CA","shipping_street":"979
+        Vinita Loaf","total":29.3,"total_ccfee":1.18,"total_discount":"0","total_kickback":0.0,"total_seller":27.78,"total_shipping":5.5,"total_subtotal":30.48,"total_tindiefee":1.52,"tracking_code":"9400136208271299474932","tracking_url":""},{"company_title":"Williamson-Kuhlman","date":"2024-12-11T14:32:11.426681","date_shipped":"2024-12-11T14:59:27.548645","discount_code":"","email":"walter@toy-luettgen.example","items":[{"model_number":"mini-v2-partially-assembled","options":"
+        (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":12.99,"price_unit":12.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"328325","payment":"unpaid","phone":"+919033642813","refunded":false,"shipped":false,"shipping_city":"North
+        Madalinefurt","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Kip
+        Ullrich","shipping_postcode":"84037","shipping_service":"United States Postal
+        Service USPS Ground Advantage","shipping_state":"CA","shipping_street":"96622
+        Dorthea Isle","total":17.65,"total_ccfee":0.84,"total_discount":"0","total_kickback":0.0,"total_seller":16.73,"total_shipping":5.5,"total_subtotal":18.49,"total_tindiefee":0.92,"tracking_code":"9400136208271297518768","tracking_url":""},{"company_title":"","date":"2024-12-11T12:57:10.463432","date_shipped":"2024-12-11T14:57:55.090233","discount_code":"","email":"leah.lueilwitz@spencer.test","items":[{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":7.99,"price_unit":7.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"952088","payment":"unpaid","phone":"+646573038363","refunded":false,"shipped":false,"shipping_city":"West
+        Judsontown","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Angie
+        Weissnat","shipping_postcode":"57955-5864","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"TX","shipping_street":"29919
+        Zieme Shoals","total":12.8,"total_ccfee":0.69,"total_discount":"0","total_kickback":0.0,"total_seller":12.13,"total_shipping":5.5,"total_subtotal":13.49,"total_tindiefee":0.67,"tracking_code":"9400136208271297517792","tracking_url":""},{"company_title":"","date":"2024-12-11T12:55:48.630732","date_shipped":"2024-12-11T14:57:58.223796","discount_code":"","email":"edgardo@ebert.example","items":[{"model_number":"mini","options":"
+        (OpenSpool Mini: OpenSpool stickers (10))","pre_order":false,"price_total":8.99,"price_unit":8.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"},{"model_number":"mini","options":"
+        (OpenSpool Mini: NFC 215 tags (4))","pre_order":false,"price_total":8.99,"price_unit":8.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"},{"model_number":"mini-v2-partially-assembled","options":"
+        (OpenSpool Mini: Partially Assembled (No Case, Provide own ESP32/PN532))","pre_order":false,"price_total":12.99,"price_unit":12.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"855266","payment":"unpaid","phone":"+301899754788","refunded":false,"shipped":false,"shipping_city":"Kristastad","shipping_country":"Australia","shipping_country_code":"AU","shipping_instructions":"Authority
+        to leave","shipping_name":"Mr. Millard Hahn","shipping_postcode":"66834","shipping_service":"United
+        States Postal Service First Class Package International Service","shipping_state":"WA","shipping_street":"7203
+        Monika Club","total":52.1,"total_ccfee":1.87,"total_discount":"0","total_kickback":0.0,"total_seller":49.4,"total_shipping":23.0,"total_subtotal":53.97,"total_tindiefee":2.7,"tracking_code":"LM323845370US","tracking_url":""},{"company_title":"","date":"2024-12-10T09:41:21.201099","date_shipped":"2024-12-11T15:23:27.445118","discount_code":"","email":"rosendo@white-rau.test","items":[{"model_number":"mini-v2-fully-assembled","options":"
+        (OpenSpool Mini: Fully Assembled with 3d Printed Case)","pre_order":false,"price_total":22.99,"price_unit":22.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"","number":"510207","payment":"unpaid","phone":"+346498357254","refunded":false,"shipped":false,"shipping_city":"South
+        Eartha","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Ka
+        Murazik","shipping_postcode":"22865-9778","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"GA","shipping_street":"4333
+        O''Reilly Run","total":27.36,"total_ccfee":1.13,"total_discount":"0","total_kickback":0.0,"total_seller":25.94,"total_shipping":5.5,"total_subtotal":28.49,"total_tindiefee":1.42,"tracking_code":"9400136208271297531071","tracking_url":""},{"company_title":"","date":"2024-12-04T11:20:22.532331","date_shipped":"2024-12-05T20:59:24.168310","discount_code":"","email":"antonia.dooley@casper.test","items":[{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":15.99,"price_unit":15.99,"product":"OpenSpool
+        - Mini","quantity":1,"sku":"36746","status":"billed"}],"message":"Molestias
+        aliquid impedit aut.","number":"130903","payment":"unpaid","phone":"+18925570621","refunded":false,"shipped":false,"shipping_city":"Lake
+        Anhside","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Magan
+        Durgan LLD","shipping_postcode":"05107","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"NY","shipping_street":"72598
+        Kennith Club","total":20.57,"total_ccfee":0.92,"total_discount":"0","total_kickback":0.0,"total_seller":19.5,"total_shipping":5.5,"total_subtotal":21.49,"total_tindiefee":1.07,"tracking_code":"9400
+        1362 0827 1293 5077 97","tracking_url":""},{"company_title":"","date":"2024-12-04T06:38:07.158356","date_shipped":"2024-12-05T20:37:59.999139","discount_code":"","email":"joel_hirthe@lang-bins.example","items":[{"model_number":"mini-v2-barebones","options":"
+        (OpenSpool Mini: Barebones (3d printed Case, Soldered PCB, Provide own ESP32/PN532))","pre_order":false,"price_total":47.97,"price_unit":15.99,"product":"OpenSpool
+        - Mini","quantity":3,"sku":"36746","status":"billed"},{"model_number":"mini-v2-pcb","options":"
+        (OpenSpool Mini: PCB Only)","pre_order":false,"price_total":31.96,"price_unit":7.99,"product":"OpenSpool
+        - Mini","quantity":4,"sku":"36746","status":"billed"}],"message":"Est suscipit
+        labore temporibus.","number":"561812","payment":"unpaid","phone":"+305261657741","refunded":false,"shipped":false,"shipping_city":"East
+        Emeline","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Latoria
+        Beahan III","shipping_postcode":"81309-7478","shipping_service":"United States
+        Postal Service USPS Ground Advantage","shipping_state":"FL","shipping_street":"215
+        Donte Fork","total":82.65,"total_ccfee":2.78,"total_discount":"0","total_kickback":0.0,"total_seller":78.38,"total_shipping":5.5,"total_subtotal":85.43,"total_tindiefee":4.27,"tracking_code":"9400
+        1362 0827 1293 5019 86","tracking_url":""},{"company_title":"","date":"2022-09-27T19:30:27.647728","date_shipped":"2022-09-30T14:45:41.820678","discount_code":"","email":"noe@russel.test","items":[{"model_number":"v1.0","options":"","pre_order":false,"price_total":35.0,"price_unit":35.0,"product":"USB-Timer
+        to tun on USB Ports on a schedule","quantity":1,"sku":"27902","status":"billed"}],"message":"Officia
+        accusamus dolor voluptas.","number":"935916","payment":"complete","phone":"+636182461595","refunded":false,"shipped":false,"shipping_city":"Lake
+        Malcom","shipping_country":"United States of America","shipping_country_code":"US","shipping_instructions":"","shipping_name":"Zofia
+        Lang","shipping_postcode":"29032-0260","shipping_service":"United States Postal
+        Service Standard Ground Rate","shipping_state":"NY","shipping_street":"843
+        Daniel Spur","total":41.7,"total_ccfee":1.55,"total_discount":"0","total_kickback":0.0,"total_seller":39.54,"total_shipping":8.25,"total_subtotal":43.25,"total_tindiefee":2.16,"tracking_code":"9505515626542273134142","tracking_url":""}]}'
+  recorded_at: Sat, 28 Dec 2024 20:44:43 GMT
 recorded_with: VCR 6.3.1

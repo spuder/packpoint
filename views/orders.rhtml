@@ -3,7 +3,7 @@
   <% if ENV['APP_ENV'] == 'development' %>
   <h5><span style="color: #FF2288;">Development</span></h5>
   <% end %>
-  <h4>Unshipped: <span style="color: #9b4dca;"><%= orders["meta"]["total_count"] %></span></h4>
+  <h4>Unshipped: <span style="color: #9b4dca;"><%= orders.count { |order| !order.shipped } %></span></h4>
 </div>
 
 <table>
@@ -18,42 +18,42 @@
   </tr>
 </thead>
 <tbody>
-  <% orders["orders"].sort_by { |order| DateTime.parse(order["date"]) }.each do |order| %>
+  <% orders.sort_by(&:date).each do |order| %>
     <tr>
       <td>
-        <button class="expand-btn" data-target="details-<%= order["number"] %>">
+        <button class="expand-btn" data-target="details-<%= order.order_number %>">
           &#9660;
         </button>
       </td>
       <td>Tindie.com</td>
-      <td><b><%= order["number"] %></b></td>
-      <td><%= DateTime.parse(order["date"]).strftime("%B %d %H:%M") %></td>
-      <td><%= order["shipping_name"] %></td>
-      <td><%= countries[order["shipping_country_code"]] %></td>
+      <td><b><%= order.order_number %></b></td>
+      <td><%= order.date.strftime("%B %d %H:%M") %></td>
+      <td><%= order.address_dict[:recipient_name] %></td>
+      <td><%= countries[order.address_dict[:country]] %></td>
     </tr>
-    <tr class="details-row" id="details-<%= order["number"] %>" style="display: none;">
+    <tr class="details-row" id="details-<%= order.order_number %>" style="display: none;">
       <td colspan="4">
         <div class="details-container">
           <div class="items-section">
             <h4>Items</h4>
-            Order: <b><%= order["number"] %></b>
-            <% order["items"].each do |item| %>
+            Order: <b><%= order.order_number %></b>
+            <% order.products.each do |item| %>
               <div class="item-details">
-                  <% if item["quantity"].to_i > 1 %>
+                  <% if item.qty > 1 %>
                   <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
-                      Quantity: <%= item["quantity"] %>
+                      Quantity: <%= item.qty %>
                   </span>
                   <% else %>
-                  Quantity: <%= item["quantity"] %>
+                  Quantity: <%= item.qty %>
                   <% end %>
-                  | <b><%= item["options"] %></b><br>
-                  Total: $<%= '%.2f' % item["price_total"] %>
+                  | <b><%= item.options %></b><br>
+                  Total: $<%= '%.2f' % item.price %>
               </div>
               <p></p>
-              <a href="https://www.tindie.com/orders/print/<%= order["number"] %>" onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
+              <a href="https://www.tindie.com/orders/print/<%= order.order_number %>" onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
               <br>
               <button 
-                  onclick="window.open('https://www.tindie.com/orders/print/<%= order["number"] %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
+                  onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
                   class="btn btn-primary print-btn">
                   Print Packing Slip
               </button>
@@ -62,28 +62,24 @@
           <div class="shipping-section">
             <h4>Shipping</h4>
             <address>
-              <strong><%= order["shipping_name"] %></strong><br>
-              <%= order["shipping_street"] %><br>
-              <%= order["shipping_city"] %>, <%= order["shipping_state"] %> <%= order["shipping_postcode"] %>
+              <%= order.address_str %>
             </address>
             <p></p>
-            <% if purchased_labels[order['number'].to_s] && purchased_labels[order['number'].to_s][:tracking_code] && purchased_labels[order['number'].to_s][:label_url] %>
-              <input type="text" class="tracking-code" value="<%= purchased_labels[order['number'].to_s][:tracking_code] %>" readonly>
+            <% if purchased_labels[order.order_number.to_s] && purchased_labels[order.order_number.to_s][:tracking_code] && purchased_labels[order.order_number.to_s][:label_url] %>
+              <input type="text" class="tracking-code" value="<%= purchased_labels[order.order_number.to_s][:tracking_code] %>" readonly>
               <br>
-              <a href="<%= purchased_labels[order['number'].to_s][:label_url] %>" target="_blank">View Label</a>
+              <a href="<%= purchased_labels[order.order_number.to_s][:label_url] %>" target="_blank">View Label</a>
               <br></br>
-              <button id="printLabelBtn-<%= order['number'] %>" class="print-label-btn" data-label-url="<%= purchased_labels[order['number'].to_s][:label_url] %>">
+              <button id="printLabelBtn-<%= order.order_number %>" class="print-label-btn" data-label-url="<%= purchased_labels[order.order_number.to_s][:label_url] %>">
                 PRINT SHIPPING LABEL
               </button>
-            
             <% else %>
-              <form class="buy-label-form" action="/buy_label/<%= order['number'] %>" method="post">
+              <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
                 <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
                 <button type="submit">Buy Shipping Label</button>
               </form>
-              <input type="text" class="tracking-code" data-order-number="<%= order['number'] %>" placeholder="Tracking Code" readonly>
-              <a href="#" class="label-link" data-order-number="<%= order['number'] %>" target="_blank" style="display:none;">View Label</a>
-
+              <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>" placeholder="Tracking Code" readonly>
+              <a href="#" class="label-link" data-order-number="<%= order.order_number %>" target="_blank" style="display:none;">View Label</a>
             <% end %>
           </div>            
       </td>
@@ -91,6 +87,7 @@
   <% end %>
 </tbody>
 </table>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

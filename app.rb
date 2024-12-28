@@ -46,14 +46,16 @@ module ShippingApp
         ENV['TINDIE_API_KEY']
       )
       
-      orders = with_vcr { tindie_api.get_orders_json(false) }
+      unshipped_orders = with_vcr { tindie_api.get_all_orders(false) }
+      # puts unshipped_orders.inspect
       
       erb :orders, locals: {
-        orders: orders,
+        orders: unshipped_orders,
         purchased_labels: purchased_labels,
         username: ENV['TINDIE_USERNAME'],
         api_key: ENV['TINDIE_API_KEY'],
-        countries: COUNTRY_FLAGS
+        countries: COUNTRY_FLAGS,
+        total_count: unshipped_orders.length
       }
     end
 
