@@ -61,9 +61,21 @@ module ShippingApp
 
     post '/buy_label/:order_number' do
       order_number = params[:order_number]
-      order_data = JSON.parse(params[:order_data])
+      puts "Buying label for order: #{order_number}"
       
-      result = ShippingService.new.create_label(order_number, order_data)
+      order_data = {
+        'shipping_name' => params[:shipping_name],
+        'shipping_street' => params[:shipping_street],
+        'shipping_city' => params[:shipping_city],
+        'shipping_state' => params[:shipping_state],
+        'shipping_postcode' => params[:shipping_postcode],
+        'shipping_country' => params[:shipping_country],
+        'shipping_phone' => params[:shipping_phone].to_s.empty? ? nil : params[:shipping_phone],
+        'email' => params[:email].to_s.empty? ? nil : params[:email]
+      }
+      puts "Order Data: #{order_data.inspect}"
+      
+      result = ShippingApp::ShippingService.new.create_label(order_number, order_data)
       
       # Store the label information in the session
       session[:orders] ||= {}

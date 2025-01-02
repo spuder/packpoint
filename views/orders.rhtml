@@ -75,7 +75,14 @@
               </button>
             <% else %>
               <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
-                <input type="hidden" name="order_data" value="<%= order.to_json.gsub('"', '&quot;') %>">
+                <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
+                <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
+                <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
+                <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
+                <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
+                <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
+                <input type="hidden" name="shipping_phone" value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
+                <input type="hidden" name="email" value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
                 <button type="submit">Buy Shipping Label</button>
               </form>
               <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>" placeholder="Tracking Code" readonly>
