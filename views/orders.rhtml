@@ -29,7 +29,7 @@
       <td><b><%= order.order_number %></b></td>
       <td><%= order.date.strftime("%B %d %H:%M") %></td>
       <td><%= order.address_dict[:recipient_name] %></td>
-      <td><%= countries[order.address_dict[:country]] %></td>
+      <td><%= countries[order.address_dict[:country_code]] %></td>
     </tr>
     <tr class="details-row" id="details-<%= order.order_number %>" style="display: none;">
       <td colspan="4">

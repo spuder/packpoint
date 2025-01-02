@@ -10,7 +10,6 @@ The shipping station software for Tindie / Easy Post
 
 
 
-
 ## Usage
 
 Create a `.env` file with your settings. You can use the provided examples. 
@@ -32,7 +31,7 @@ APP_ENV=development rackup
 
 ## Production
 ```
-APP_ENV=production rackup
+APP_ENV=production RACK_ENV=production bundle exec rackup --host 0.0.0.0
 ```
 
 ## Production Docker/Podman
