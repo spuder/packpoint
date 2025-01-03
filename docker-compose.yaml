@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  web:
+  packpoint:
+    image: spuder/packpoint:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,11 +10,19 @@ services:
       - "9292:9292"
     volumes:
       - .:/app
+      # - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
     env_file:
       - stack.env
+    network_mode: host
+    # network_mode: bridge
+
+
 #     networks:
 #       - app-network
 
 # networks:
 #   app-network:
 #     driver: bridge
+
+# podman build -t spuder/packpoint . --no-cache
+# podman run --env-file .env -p 9292:9292 localhost/spuder/packpoint:latest
