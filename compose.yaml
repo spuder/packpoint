@@ -6,8 +6,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "9292:9292"
-    volumes:
-      - .:/app
+    # volumes:
+    #   - .:/app
       # - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
     env_file:
       - stack.env
