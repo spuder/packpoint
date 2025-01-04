@@ -13,7 +13,10 @@ services:
       # - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
     env_file:
       - stack.env
-    network_mode: host
+    labels:
+      tsdproxy.enable: true
+      tsdproxy.name: shipping
+    # network_mode: host
     # network_mode: bridge
 
 
