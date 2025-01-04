@@ -115,7 +115,7 @@ module ShippingApp
         end
         
         # Rest of your code remains the same
-        printer = CupsPrinter.new("PM-241-BT", :hostname => "packpoint.local", :port => 631)
+        printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
         job = printer.print_file(cached_file)
         status = job.status
         

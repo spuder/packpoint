@@ -35,7 +35,7 @@ module ShippingApp
       
         puts "Running in #{ENV['APP_ENV']} environment"
       
-        validate_required_env_vars(['TINDIE_USERNAME', 'TINDIE_API_KEY'])
+        validate_required_env_vars(['TINDIE_USERNAME', 'TINDIE_API_KEY', 'CUPS_HOST'])
         setup_test_environment if development?
         set_easypost_address
       
