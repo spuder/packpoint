@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: packpoint
     ports:
       - "9292:9292"
     # volumes:
