@@ -88,11 +88,18 @@
                 <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
                 <input type="hidden" name="shipping_phone" value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
                 <input type="hidden" name="email" value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                <button 
-                  class="btn btn-primary print-btn"
-                  type="submit">
-                  Buy Shipping Label
-                </button>
+                <% if order.address_dict[:country_code] == 'US' %>
+                  <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
+                    <!-- Existing form inputs -->
+                    <button class="btn btn-primary print-btn" type="submit">
+                      Buy Shipping Label
+                    </button>
+                  </form>
+                <% else %>
+                  <a href="https://www.easypost.com" target="_blank" class="btn btn-primary">
+                    Ship Internationally
+                  </a>
+                <% end %>
               </form>
               <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>" placeholder="Tracking Code" readonly>
               <a href="#" class="label-link" data-order-number="<%= order.order_number %>" target="_blank" style="display:none;">View Label</a>
