@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: packpoint
-    ports:
-      - "9292:9292"
+    # ports:
+    #   - "9292:9292"
     # volumes:
     #   - .:/app
       # - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
@@ -15,7 +15,7 @@ services:
     labels:
       tsdproxy.enable: true
       tsdproxy.name: shipping
-    # network_mode: host
+    network_mode: host
     # network_mode: bridge
 
 
