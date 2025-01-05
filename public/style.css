@@ -1,95 +1,118 @@
 .details-container {
   display: flex;
-  gap: 2rem;
-  padding: 1rem;
+  gap: 3rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .items-section,
 .shipping-section {
   flex: 1;
-  padding: 20px;
+  min-width: 300px;
+  padding: 2rem;
   border: 1px solid #ddd;
-  border-radius: 5px;
+  border-radius: 8px;
   background-color: #f9f9f9;
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* .shipping-section {
-  border-left: 1px solid #e1e1e1;
-  padding-left: 2rem;
-} */
+/* Large heading styles */
+.items-section h4,
+.shipping-section h4 {
+  margin-bottom: 2rem;
+  font-size: 2.25rem;
+  font-weight: 600;
+  color: #333;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #9b4dca;
+}
 
-.item-details {
+/* Item details and order info */
+.order-info {
+  margin-bottom: 2rem;
+}
+
+.order-number {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: #333;
   margin-bottom: 1rem;
 }
 
-.items-section,
-.shipping-section h4 {
-  margin-bottom: 15px;
-  font-size: 18px;
-  /* color: #333; */
+.item-details {
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+  font-size: 1.4rem;
+}
+
+.quantity,
+.total-amount {
+  font-size: 1.4rem;
+  color: #333;
+  margin: 0.5rem 0;
+  line-height: 1.8;
+}
+
+/* Shipping section layout */
+.shipping-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.shipping-address {
+  margin-bottom: 2rem;
 }
 
 .shipping-section address {
   font-style: normal;
-  line-height: 1.5;
-  margin-bottom: 15px;
+  line-height: 1.8;
+  margin: 1.5rem 0;
+  font-size: 1.4rem;
+}
+
+.shipping-section address .recipient-name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 1.6rem;
+}
+
+/* Button container */
+.shipping-section form {
+  margin: auto 0;  /* This will push the form to the middle vertically */
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* Button and link styling */
+.shipping-section a,
+.items-section a {
+  display: inline-block;
+  color: #9b4dca;
+  text-decoration: none;
+  margin: 0.75rem 0;
+  font-weight: 500;
+  font-size: 1.4rem;
 }
 
 .shipping-section .tracking-code {
   display: block;
   width: 100%;
-  max-width: 300px;
-  margin-bottom: 10px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  max-width: 400px;
+  margin: 1.5rem auto;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
   background-color: #fff;
+  font-family: monospace;
+  font-size: 1.4rem;
 }
 
-.shipping-section a {
-  display: inline-block;
-  margin-right: 16px;  /* Increased spacing between View Label and button */
-  /* color: #007bff; */
-  text-decoration: none;
-  vertical-align: middle;  /* Align with button */
-}
-
-/* .shipping-section button {
-  display: inline-block;
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #fff;
-  background-color: #6c63ff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  vertical-align: middle;  /* Align with link */
-}
-
-.shipping-section button:hover {
-  /* background-color: #5a54d6; */
-} */
-
-/* .shipping-section .buy-label-form {
-  margin-top: 15px;
-} */
-
-/* Add flex container for better alignment */
-.shipping-section .actions-container {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-top: 10px;
-}
-
-.print-label-btn {
-  background-color: #9b4dca;
-  color: white;
-  border: none;
-  /* padding: 10px 20px; */
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 10px;
+/* Specific styles for item options */
+.item-options {
+  font-weight: 600;
+  margin: 0.5rem 0;
 }

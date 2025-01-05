@@ -62,7 +62,12 @@
           <div class="shipping-section">
             <h4>Shipping</h4>
             <address>
-              <%= order.address_str %>
+              <span class="recipient-name"><%= order.address_dict[:recipient_name] %></span>
+              <%= order.address_dict[:street] %>,
+              <%= order.address_dict[:city] %>,
+              <%= order.address_dict[:state] %> <%= order.address_dict[:postcode] %>,
+              <br>
+              <%= order.address_dict[:country] %>
             </address>
             <p></p>
             <% if purchased_labels[order.order_number.to_s] && purchased_labels[order.order_number.to_s][:tracking_code] && purchased_labels[order.order_number.to_s][:label_url] %>
@@ -83,7 +88,11 @@
                 <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
                 <input type="hidden" name="shipping_phone" value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
                 <input type="hidden" name="email" value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                <button type="submit">Buy Shipping Label</button>
+                <button 
+                  class="btn btn-primary print-btn"
+                  type="submit">
+                  Buy Shipping Label
+                </button>
               </form>
               <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>" placeholder="Tracking Code" readonly>
               <a href="#" class="label-link" data-order-number="<%= order.order_number %>" target="_blank" style="display:none;">View Label</a>
