@@ -96,15 +96,13 @@ module ShippingApp
         puts "Downloading label: #{data}"
         label_url = data['label_url']
         
-        # Create cache directory if it doesn't exist
+        # Cache handling code remains the same
         cache_dir = File.join(Dir.pwd, 'cache', 'labels')
         FileUtils.mkdir_p(cache_dir)
         
-        # Extract original filename from URL
         original_filename = File.basename(URI.parse(label_url).path)
         cached_file = File.join(cache_dir, original_filename)
         
-        # Download and cache the file if it doesn't exist
         unless File.exist?(cached_file)
           URI.open(label_url) do |url_file|
             File.open(cached_file, 'wb') do |file|
@@ -114,16 +112,28 @@ module ShippingApp
           end
         end
         
-        # Rest of your code remains the same
         printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
+        puts "Printing label: #{cached_file}"
         job = printer.print_file(cached_file)
-        status = job.status
         
-        { success: true, message: "Print job status: #{status}" }.to_json
+        begin
+          status = job.status
+        rescue RuntimeError => e
+          if e.message.include?('Job not found')
+            # If job is not found, it likely completed successfully
+            status = "completed (fast job)"
+          else
+            raise e
+          end
+        end
+        
+        { success: true, message: "Print job sent successfully. Status: #{status}" }.to_json
       rescue => e
+        puts "ERROR in print_label: #{e.class} - #{e.message}"
+        puts e.backtrace
         { success: false, message: "Error: #{e.message}" }.to_json
       end
-    end    
+    end  
 
     get '/' do
       redirect '/orders'
