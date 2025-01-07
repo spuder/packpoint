@@ -15,6 +15,7 @@ services:
     labels:
       tsdproxy.enable: true
       tsdproxy.name: shipping
+      tsdproxy.container_port: 9292
     network_mode: host
     # network_mode: bridge
 

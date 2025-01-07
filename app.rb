@@ -113,7 +113,7 @@ module ShippingApp
         end
         
         printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
-        puts "Printing label: #{cached_file}"
+        puts "Printing label: #{cached_file} on printer #{ENV['CUPS_HOST']}"
         job = printer.print_file(cached_file)
         
         begin
