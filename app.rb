@@ -13,11 +13,18 @@ module ShippingApp
     enable :sessions
 
     COUNTRY_FLAGS = {
-      'US' => '🇺🇸',
-      'CA' => '🇨🇦',
-      'GB' => '🇬🇧',
-      'PR' => '🇵🇷',
-      'AU' => '🇦🇺'
+      'US' => '🇺🇸',  # United States
+      'CA' => '🇨🇦',  # Canada
+      'GB' => '🇬🇧',  # United Kingdom
+      'PR' => '🇵🇷',  # Puerto Rico
+      'AU' => '🇦🇺',  # Australia
+      'AT' => '🇦🇹',  # Austria
+      'DE' => '🇩🇪',  # Germany
+      'ES' => '🇪🇸',  # Spain
+      'FR' => '🇫🇷',  # France
+      'PL' => '🇵🇱',  # Poland
+      'SG' => '🇸🇬',  # Singapore
+      'SK' => '🇸🇰'   # Slovakia
     }.freeze
 
     configure do
