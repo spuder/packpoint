@@ -32,6 +32,14 @@ module ShippingApp
       
       # Disable all Rack protection to allow external connections
       set :protection, false
+      
+      # Allow any host in development
+      if Environment.development?
+        set :bind, '0.0.0.0'
+        set :port, 9292
+        # Allow any host by setting permitted_hosts to empty array
+        set :host_authorization, { permitted_hosts: [] }
+      end
     end
 
     helpers do
