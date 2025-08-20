@@ -17,12 +17,6 @@ services:
     # This container needs to be on a network that the Tailscale container can also access
     networks:
       - packpoint
-    # This healthcheck ensures the service is ready before other services depend on it.
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q http://localhost:9292 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     depends_on:
       # While this doesn't strictly need the config-init container, adding it as a dependency to give additional time for
       # the tailscale container to have time to start
