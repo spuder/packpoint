@@ -46,7 +46,7 @@ services:
         }' > /tailscale-config/serve-config.json
         cat /tailscale-config/serve-config.json
     volumes:
-      - tailscale-config${DEPLOY_ENV:+-$APP_ENV}:/tailscale-config
+      - tailscale-config${DEPLOY_ENV:+-$DEPLOY_ENV}:/tailscale-config
     env_file:
       - .env
     restart: "no"
@@ -54,7 +54,7 @@ services:
 
   tailscale:
     image: tailscale/tailscale:v1.86
-    container_name: packpoint-tailscale${APP_ENV:+-$APP_ENV}
+    container_name: packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}
     restart: unless-stopped
     env_file:
       - .env
@@ -65,7 +65,7 @@ services:
     volumes:
       - ./tailscale/varlib-packpoint:/var/lib/tailscale
       - ./tailscale/tmp-packpoint:/tmp
-      - tailscale-config${APP_ENV:+-$APP_ENV}:/tailscale-config:ro
+      - tailscale-config${DEPLOY_ENV:+-$DEPLOY_ENV}:/tailscale-config:ro
     environment:
       - TS_AUTHKEY=${TS_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -73,7 +73,7 @@ services:
       - TS_ACCEPT_DNS=false
       - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
     networks:
-      - packpoint${APP_ENV:+-$APP_ENV}
+      - packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
     depends_on:
       - tailscale-config-init
       - packpoint
