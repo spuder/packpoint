@@ -1,3 +1,6 @@
+# podman build -t spuder/packpoint . --no-cache
+# podman run --env-file .env -p 9292:9292 localhost/spuder/packpoint:latest
+
 services:
   packpoint:
     image: spuder/packpoint:latest
@@ -5,37 +8,78 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: packpoint
-    ports:
-      - "9292:9292"
+    # ports:
+    #   - "9292:9292"
     env_file:
       - .env
-    network_mode: host
-    # networks:
-    #   - packpoint
+    # network_mode: host
+    networks:
+      - packpoint
 
-  # tailscale:
-  #   image: tailscale/tailscale:v1.86
-  #   container_name: packpoint-tailscale
-  #   restart: unless-stopped
-  #   cap_add:
-  #     - NET_ADMIN
-  #   volumes:
-  #     - ./tailscale/varlib-packpoint:/var/lib/tailscale
-  #     - ./tailscale/tmp-packpoint:/tmp
-  #   environment:
-  #     - TS_AUTHKEY=${TS_AUTH_KEY}
-  #     - TS_STATE_DIR=/var/lib/tailscale
-  #     - TS_HOSTNAME
+  tailscale-config-init:
+    image: bash
+    container_name: tailscale-config-init
+    entrypoint:
+      - bash
+      - -c
+      - |
+        echo '{
+          "TCP": {
+            "443": {"HTTPS": true},
+            "80": {"HTTP": true}
+          },
+          "Web": {
+            "${TAILSCALE_DOMAIN}:443": {
+              "Handlers": {
+                "/": {"Proxy": "http://packpoint:9292"}
+              }
+            },
+            "${TAILSCALE_DOMAIN}:80": {
+              "Handlers": {
+                "/": {"Proxy": "http://packpoint:9292"}
+              }
+            }
+          }
+        }' > /tailscale-config/serve-config.json
+        cat /tailscale-config/serve-config.json
+    volumes:
+      - tailscale-config:/tailscale-config
+    environment:
+      - TAILSCALE_DOMAIN=${TAILSCALE_DOMAIN}
+    env_file:
+      - .env
+    restart: "no"
+    network_mode: "none"
 
-  #   networks:
-  #     - packpoint
-  #   command: tailscaled
 
-# networks:
-#   packpoint:
-#     driver: bridge
-#   app-network:
-#     driver: bridge
+  tailscale:
+    image: tailscale/tailscale:v1.86
+    container_name: packpoint-tailscale
+    restart: unless-stopped
+    env_file:
+      - .env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./tailscale/varlib-packpoint:/var/lib/tailscale
+      - ./tailscale/tmp-packpoint:/tmp
+      - tailscale-config:/tailscale-config:ro
+    environment:
+      - TS_AUTHKEY=${TS_AUTH_KEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=packpoint-web
+      - TS_ACCEPT_DNS=false
+      - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
 
-# podman build -t spuder/packpoint . --no-cache
-# podman run --env-file .env -p 9292:9292 localhost/spuder/packpoint:latest
+    networks:
+      - packpoint
+    command: tailscaled
+
+networks:
+  packpoint:
+    driver: bridge
+
+volumes:
+  tailscale-config:
