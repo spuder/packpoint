@@ -7,25 +7,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: packpoint
+    container_name: packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
     restart: unless-stopped
     env_file:
       - .env
-    # Add environment variables that the application needs to operate correctly.
     environment:
       - TZ=America/Denver
-    # This container needs to be on a network that the Tailscale container can also access
     networks:
-      - packpoint
-    depends_on:
-      # While this doesn't strictly need the config-init container, adding it as a dependency to give additional time for
-      # the tailscale container to have time to start
-      - tailscale-config-init
+      - ${APP_ENV:+packpoint-$APP_ENV}${APP_ENV:-packpoint}
 
   # This service generates the configuration file for tailscale serve
   tailscale-config-init:
     image: bash
-    container_name: tailscale-config-init-packpoint
+    container_name: tailscale-config-init-packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
     entrypoint:
       - bash
       - -c
@@ -40,58 +34,56 @@ services:
           "Web": {
             "${TAILSCALE_DOMAIN}:443": {
               "Handlers": {
-                "/": {"Proxy": "http://packpoint:9292"}
+                "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
               }
             },
             "${TAILSCALE_DOMAIN}:80": {
               "Handlers": {
-                "/": {"Proxy": "http://packpoint:9292"}
+                "/": {"Proxy": "http://packpoint${APP_ENV:+-$APP_ENV}:9292"}
               }
             }
           }
         }' > /tailscale-config/serve-config.json
         cat /tailscale-config/serve-config.json
     volumes:
-      - tailscale-config:/tailscale-config
+      - ${APP_ENV:+tailscale-config-$APP_ENV}${APP_ENV:-tailscale-config}:/tailscale-config
     env_file:
       - .env
     restart: "no"
-    # This service doesn't need a network because it's only writing to a volume
     network_mode: "none"
 
-  # The Tailscale sidecar container
   tailscale:
     image: tailscale/tailscale:v1.86
-    container_name: packpoint-tailscale
+    container_name: packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}
     restart: unless-stopped
     env_file:
       - .env
     cap_add:
       - NET_ADMIN
-    # This is a critical fix: The TUN device is required for Tailscale to operate.
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
       - ./tailscale/varlib-packpoint:/var/lib/tailscale
       - ./tailscale/tmp-packpoint:/tmp
-      - tailscale-config:/tailscale-config:ro
+      - ${APP_ENV:+tailscale-config-$APP_ENV}${APP_ENV:-tailscale-config}:/tailscale-config:ro
     environment:
       - TS_AUTHKEY=${TS_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_HOSTNAME=packpoint-web
       - TS_ACCEPT_DNS=false
       - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
-    # Connect this container to the same bridge network as the application
     networks:
-      - packpoint
+      - ${APP_ENV:+packpoint-$APP_ENV}${APP_ENV:-packpoint}
     depends_on:
       - tailscale-config-init
       - packpoint
 
-# Define the shared bridge network
 networks:
   packpoint:
+    driver: bridge
+  packpoint-dev:
     driver: bridge
 
 volumes:
   tailscale-config:
+  tailscale-config-dev:
