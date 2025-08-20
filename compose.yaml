@@ -18,7 +18,7 @@ services:
 
   tailscale-config-init:
     image: bash
-    container_name: tailscale-config-init
+    container_name: tailscale-config-init-packpoint
     entrypoint:
       - bash
       - -c
