@@ -102,14 +102,19 @@ module ShippingApp
         data = JSON.parse(request.body.read)
         puts "Downloading label: #{data}"
         label_url = data['label_url']
-        
+
+        # Log ENV variables and printer config
+        puts "ENV['CUPS_HOST']: #{ENV['CUPS_HOST']}"
+        puts "Printer name: PM-241-BT"
+        puts "CUPS port: 631"
+
         # Cache handling code remains the same
         cache_dir = File.join(Dir.pwd, 'cache', 'labels')
         FileUtils.mkdir_p(cache_dir)
-        
+
         original_filename = File.basename(URI.parse(label_url).path)
         cached_file = File.join(cache_dir, original_filename)
-        
+
         unless File.exist?(cached_file)
           URI.open(label_url) do |url_file|
             File.open(cached_file, 'wb') do |file|
@@ -118,14 +123,26 @@ module ShippingApp
             end
           end
         end
-        
+
+        # Try to log available printers (if supported by CupsPrinter)
+        begin
+          if CupsPrinter.respond_to?(:printers)
+            puts "Available printers: #{CupsPrinter.printers.inspect}"
+          else
+            puts "CupsPrinter.printers not available for listing printers."
+          end
+        rescue => e
+          puts "Error listing printers: #{e.class} - #{e.message}"
+        end
+
         printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
         puts "Printing label: #{cached_file} on printer #{ENV['CUPS_HOST']}"
         job = printer.print_file(cached_file)
-        
+
         begin
           status = job.status
         rescue RuntimeError => e
+          puts "Error getting job status: #{e.class} - #{e.message}"
           if e.message.include?('Job not found')
             # If job is not found, it likely completed successfully
             status = "completed (fast job)"
@@ -133,11 +150,13 @@ module ShippingApp
             raise e
           end
         end
-        
+
         { success: true, message: "Print job sent successfully. Status: #{status}" }.to_json
       rescue => e
         puts "ERROR in print_label: #{e.class} - #{e.message}"
-        puts e.backtrace
+        puts "Backtrace:"
+        puts e.backtrace.join("\n")
+        puts "ENV['CUPS_HOST']: #{ENV['CUPS_HOST']}"
         { success: false, message: "Error: #{e.message}" }.to_json
       end
     end  

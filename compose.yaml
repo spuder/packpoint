@@ -5,25 +5,35 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: packpoint
-    # ports:
-    #   - "9292:9292"
-    # volumes:
-    #   - .:/app
-      # - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
+    ports:
+      - "9292:9292"
     env_file:
-      - stack.env
-    labels:
-      tsdproxy.enable: true
-      tsdproxy.name: shipping
-      tsdproxy.container_port: 9292
+      - .env
     network_mode: host
-    # network_mode: bridge
+    # networks:
+    #   - packpoint
 
+  # tailscale:
+  #   image: tailscale/tailscale:v1.86
+  #   container_name: packpoint-tailscale
+  #   restart: unless-stopped
+  #   cap_add:
+  #     - NET_ADMIN
+  #   volumes:
+  #     - ./tailscale/varlib-packpoint:/var/lib/tailscale
+  #     - ./tailscale/tmp-packpoint:/tmp
+  #   environment:
+  #     - TS_AUTHKEY=${TS_AUTH_KEY}
+  #     - TS_STATE_DIR=/var/lib/tailscale
+  #     - TS_HOSTNAME
 
-#     networks:
-#       - app-network
+  #   networks:
+  #     - packpoint
+  #   command: tailscaled
 
 # networks:
+#   packpoint:
+#     driver: bridge
 #   app-network:
 #     driver: bridge
 
