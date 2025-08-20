@@ -14,7 +14,7 @@ services:
     environment:
       - TZ=America/Denver
     networks:
-      - ${APP_ENV:+packpoint-$APP_ENV}${APP_ENV:-packpoint}
+      - packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
 
   # This service generates the configuration file for tailscale serve
   tailscale-config-init:
@@ -39,14 +39,14 @@ services:
             },
             "${TAILSCALE_DOMAIN}:80": {
               "Handlers": {
-                "/": {"Proxy": "http://packpoint${APP_ENV:+-$APP_ENV}:9292"}
+                "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
               }
             }
           }
         }' > /tailscale-config/serve-config.json
         cat /tailscale-config/serve-config.json
     volumes:
-      - ${APP_ENV:+tailscale-config-$APP_ENV}${APP_ENV:-tailscale-config}:/tailscale-config
+      - tailscale-config${DEPLOY_ENV:+-$APP_ENV}:/tailscale-config
     env_file:
       - .env
     restart: "no"
@@ -54,7 +54,7 @@ services:
 
   tailscale:
     image: tailscale/tailscale:v1.86
-    container_name: packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}
+    container_name: packpoint-tailscale${APP_ENV:+-$APP_ENV}
     restart: unless-stopped
     env_file:
       - .env
@@ -65,7 +65,7 @@ services:
     volumes:
       - ./tailscale/varlib-packpoint:/var/lib/tailscale
       - ./tailscale/tmp-packpoint:/tmp
-      - ${APP_ENV:+tailscale-config-$APP_ENV}${APP_ENV:-tailscale-config}:/tailscale-config:ro
+      - tailscale-config${APP_ENV:+-$APP_ENV}:/tailscale-config:ro
     environment:
       - TS_AUTHKEY=${TS_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -73,7 +73,7 @@ services:
       - TS_ACCEPT_DNS=false
       - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
     networks:
-      - ${APP_ENV:+packpoint-$APP_ENV}${APP_ENV:-packpoint}
+      - packpoint${APP_ENV:+-$APP_ENV}
     depends_on:
       - tailscale-config-init
       - packpoint
