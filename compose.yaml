@@ -34,11 +34,13 @@ services:
           "Web": {
             "${TAILSCALE_DOMAIN}:443": {
               "Handlers": {
+                "/hello": {"Text": "world"},
                 "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
               }
             },
             "${TAILSCALE_DOMAIN}:80": {
               "Handlers": {
+                "/hello": {"Text": "world"},
                 "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
               }
             }
