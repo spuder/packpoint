@@ -1,21 +1,34 @@
-# podman build -t spuder/packpoint . --no-cache
-# podman run --env-file .env -p 9292:9292 localhost/spuder/packpoint:latest
+# Corrected Docker Compose file for Packpoint with Tailscale sidecar
 
 services:
+  # The main application container
   packpoint:
     image: spuder/packpoint:latest
     build:
       context: .
       dockerfile: Dockerfile
     container_name: packpoint
-    # ports:
-    #   - "9292:9292"
+    restart: unless-stopped
     env_file:
       - .env
-    # network_mode: host
+    # Add environment variables that the application needs to operate correctly.
+    environment:
+      - TZ=America/Denver
+    # This container needs to be on a network that the Tailscale container can also access
     networks:
       - packpoint
+    # This healthcheck ensures the service is ready before other services depend on it.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q http://localhost:9292 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      # While this doesn't strictly need the config-init container, adding it as a dependency to give additional time for
+      # the tailscale container to have time to start
+      - tailscale-config-init
 
+  # This service generates the configuration file for tailscale serve
   tailscale-config-init:
     image: bash
     container_name: tailscale-config-init-packpoint
@@ -23,6 +36,8 @@ services:
       - bash
       - -c
       - |
+        # Generate the configuration file. We use the service name 'packpoint'
+        # to connect to the other container on the shared network.
         echo '{
           "TCP": {
             "443": {"HTTPS": true},
@@ -44,14 +59,13 @@ services:
         cat /tailscale-config/serve-config.json
     volumes:
       - tailscale-config:/tailscale-config
-    environment:
-      - TAILSCALE_DOMAIN=${TAILSCALE_DOMAIN}
     env_file:
       - .env
     restart: "no"
+    # This service doesn't need a network because it's only writing to a volume
     network_mode: "none"
 
-
+  # The Tailscale sidecar container
   tailscale:
     image: tailscale/tailscale:v1.86
     container_name: packpoint-tailscale
@@ -60,6 +74,7 @@ services:
       - .env
     cap_add:
       - NET_ADMIN
+    # This is a critical fix: The TUN device is required for Tailscale to operate.
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
@@ -72,11 +87,14 @@ services:
       - TS_HOSTNAME=packpoint-web
       - TS_ACCEPT_DNS=false
       - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
-
+    # Connect this container to the same bridge network as the application
     networks:
       - packpoint
-    command: tailscaled
+    depends_on:
+      - tailscale-config-init
+      - packpoint
 
+# Define the shared bridge network
 networks:
   packpoint:
     driver: bridge

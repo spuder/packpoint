@@ -29,6 +29,16 @@ module ShippingApp
 
     configure do
       Environment.setup
+      
+      # Configure host protection for external connections
+      if ENV['RACK_ENV'] == 'development'
+        # In development, disable host authorization protection
+        set :protection, :except => [:host_authorization]
+      else
+        # In production, allow specific hosts
+        allowed_hosts = ENV['ALLOWED_HOSTS']&.split(',')&.map(&:strip) || ['localhost']
+        set :protection, :host_authorization => { :permitted_hosts => allowed_hosts }
+      end
     end
 
     helpers do
