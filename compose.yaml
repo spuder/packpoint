@@ -13,10 +13,8 @@ services:
       - .env
     environment:
       - TZ=America/Denver
-    networks:
-      - packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+    network_mode: "service:tailscale"
 
-  # This service generates the configuration file for tailscale serve
   tailscale-config-init:
     image: bash
     container_name: tailscale-config-init-packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
@@ -35,13 +33,13 @@ services:
             "${TAILSCALE_DOMAIN}:443": {
               "Handlers": {
                 "/hello": {"Text": "world"},
-                "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
+                "/": {"Proxy": "http://localhost:9292"}
               }
             },
             "${TAILSCALE_DOMAIN}:80": {
               "Handlers": {
                 "/hello": {"Text": "world"},
-                "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
+                "/": {"Proxy": "http://localhost:9292"}
               }
             }
           }
@@ -54,6 +52,8 @@ services:
     restart: "no"
     network_mode: "none"
 
+  # This service generates the configuration file for tailscale serve
+  #                 "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
   tailscale:
     image: tailscale/tailscale:v1.86
     container_name: packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}
@@ -72,20 +72,24 @@ services:
       - TS_AUTHKEY=${TS_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_HOSTNAME=packpoint-web${DEPLOY_ENV:+-$DEPLOY_ENV}
-      - TS_ACCEPT_DNS=false
+      - TS_ACCEPT_DNS=true
       - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
     networks:
       - packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+    # network_mode: "service:packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}"
     depends_on:
       - tailscale-config-init
-      - packpoint
 
+# Define the shared bridge network
 networks:
   packpoint:
     driver: bridge
   packpoint-dev:
     driver: bridge
+  packpoint-foobar:
+    driver: bridge
 
 volumes:
   tailscale-config:
   tailscale-config-dev:
+  tailscale-config-foobar:

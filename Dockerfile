@@ -15,8 +15,9 @@ FROM ruby:3.3.6-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y libcups2 libcups2-dev avahi-utils
+# Install runtime dependencies including CUPS client tools
+RUN apt-get update && apt-get install -y libcups2 libcups2-dev cups-client avahi-utils \
+    && mkdir -p /etc/cups
 
 COPY --from=builder /usr/local/bundle /usr/local/bundle
 COPY . .

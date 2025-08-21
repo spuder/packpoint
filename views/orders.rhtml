@@ -1,214 +1,252 @@
 <div style="display: flex; justify-content: space-between; align-items: center;">
   <h3>Orders</h3>
-  <% if ENV['APP_ENV'] == 'development' %>
-  <h5><span style="color: #FF2288;">Development</span></h5>
-  <% end %>
-  <h4>Unshipped: <span style="color: #9b4dca;"><%= orders.count { |order| !order.shipped } %></span></h4>
+  <% if ENV['APP_ENV']=='development' %>
+    <h5><span style="color: #FF2288;">Development</span></h5>
+    <% end %>
+      <h4>Unshipped: <span style="color: #9b4dca;">
+          <%= orders.count { |order| !order.shipped } %>
+        </span></h4>
+</div>
+
+<!-- Printer Status Indicator -->
+<div
+  style="margin-bottom: 15px; padding: 10px; border-radius: 5px; <% if printer_available %>background-color: #d4edda; border: 1px solid #c3e6cb;<% else %>background-color: #f8d7da; border: 1px solid #f5c6cb;<% end %>">
+  <% if printer_available %>
+    <span style="color: #155724; font-weight: bold;">✓ Printer PM-241-BT Ready</span>
+    <% elsif printer_error %>
+      <span style="color: #721c24; font-weight: bold;">✗ Printer Error: <%= printer_error %></span>
+      <% else %>
+        <span style="color: #721c24; font-weight: bold;">✗ Printer PM-241-BT Not Available</span>
+        <% end %>
 </div>
 
 <table>
-<thead>
-  <tr>
-    <th>Actions</th>
-    <th>Store</th>
-    <th>Order Number</th>
-    <th>Date</th>
-    <th>Shipping Name</th>
-    <th>Country</th>
-  </tr>
-</thead>
-<tbody>
-  <% orders.sort_by(&:date).each do |order| %>
+  <thead>
     <tr>
-      <td>
-        <button class="expand-btn" data-target="details-<%= order.order_number %>">
-          &#9660;
-        </button>
-      </td>
-      <td>Tindie.com</td>
-      <td><b><%= order.order_number %></b></td>
-      <td><%= order.date.strftime("%B %d %H:%M") %></td>
-      <td><%= order.address_dict[:recipient_name] %></td>
-      <td><%= countries[order.address_dict[:country_code]] %></td>
+      <th>Actions</th>
+      <th>Store</th>
+      <th>Order Number</th>
+      <th>Date</th>
+      <th>Shipping Name</th>
+      <th>Country</th>
     </tr>
-    <tr class="details-row" id="details-<%= order.order_number %>" style="display: none;">
-      <td colspan="4">
-        <div class="details-container">
-          <div class="items-section">
-            <h4>Items</h4>
-            Order: <b><%= order.order_number %></b>
-            <% order.products.each do |item| %>
-              <div class="item-details">
-                  <% if item.qty > 1 %>
-                  <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
+  </thead>
+  <tbody>
+    <% orders.sort_by(&:date).each do |order| %>
+      <tr>
+        <td>
+          <button class="expand-btn" data-target="details-<%= order.order_number %>">
+            &#9660;
+          </button>
+        </td>
+        <td>Tindie.com</td>
+        <td><b>
+            <%= order.order_number %>
+          </b></td>
+        <td>
+          <%= order.date.strftime("%B %d %H:%M") %>
+        </td>
+        <td>
+          <%= order.address_dict[:recipient_name] %>
+        </td>
+        <td>
+          <%= countries[order.address_dict[:country_code]] %>
+        </td>
+      </tr>
+      <tr class="details-row" id="details-<%= order.order_number %>" style="display: none;">
+        <td colspan="4">
+          <div class="details-container">
+            <div class="items-section">
+              <h4>Items</h4>
+              Order: <b>
+                <%= order.order_number %>
+              </b>
+              <% order.products.each do |item| %>
+                <div class="item-details">
+                  <% if item.qty> 1 %>
+                    <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
                       Quantity: <%= item.qty %>
-                  </span>
-                  <% else %>
-                  Quantity: <%= item.qty %>
-                  <% end %>
-                  | <b><%= item.options %></b><br>
-                  Total: $<%= '%.2f' % item.price %>
-              </div>
-              <p></p>
-              <a href="https://www.tindie.com/orders/print/<%= order.order_number %>" onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
-              <br>
-              <button 
-                  onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')" 
+                    </span>
+                    <% else %>
+                      Quantity: <%= item.qty %>
+                        <% end %>
+                          | <b>
+                            <%= item.options %>
+                          </b><br>
+                          Total: $<%= '%.2f' % item.price %>
+                </div>
+                <p></p>
+                <a href="https://www.tindie.com/orders/print/<%= order.order_number %>"
+                  onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
+                <br>
+                <button
+                  onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')"
                   class="btn btn-primary print-btn">
                   Print Packing Slip
-              </button>
-            <% end %>
-          </div>
-          <div class="shipping-section">
-            <h4>Shipping</h4>
-            <address>
-              <span class="recipient-name"><%= order.address_dict[:recipient_name] %></span>
-              <%= order.address_dict[:street] %>,
-              <%= order.address_dict[:city] %>,
-              <%= order.address_dict[:state] %> <%= order.address_dict[:postcode] %>,
-              <br>
-              <%= order.address_dict[:country] %>
-            </address>
-            <p></p>
-            <% if purchased_labels[order.order_number.to_s] && purchased_labels[order.order_number.to_s][:tracking_code] && purchased_labels[order.order_number.to_s][:label_url] %>
-              <input type="text" class="tracking-code" value="<%= purchased_labels[order.order_number.to_s][:tracking_code] %>" readonly>
-              <br>
-              <a href="<%= purchased_labels[order.order_number.to_s][:label_url] %>" target="_blank">View Label</a>
-              <br></br>
-              <button id="printLabelBtn-<%= order.order_number %>" class="print-label-btn" data-label-url="<%= purchased_labels[order.order_number.to_s][:label_url] %>">
-                PRINT SHIPPING LABEL
-              </button>
-            <% else %>
-              <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
-                <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
-                <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
-                <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
-                <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
-                <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
-                <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
-                <input type="hidden" name="shipping_phone" value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
-                <input type="hidden" name="email" value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                <% if order.address_dict[:country_code] == 'US' %>
-                  <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
-                    <!-- Existing form inputs -->
-                    <button class="btn btn-primary print-btn" type="submit">
-                      Buy Shipping Label
-                    </button>
-                  </form>
-                <% else %>
-                  <a href="https://www.easypost.com" target="_blank" class="btn btn-primary">
-                    Ship Internationally
-                  </a>
+                </button>
                 <% end %>
-              </form>
-              <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>" placeholder="Tracking Code" readonly>
-              <a href="#" class="label-link" data-order-number="<%= order.order_number %>" target="_blank" style="display:none;">View Label</a>
-            <% end %>
-          </div>            
-      </td>
-    </tr>
-  <% end %>
-</tbody>
+            </div>
+            <div class="shipping-section">
+              <h4>Shipping</h4>
+              <address>
+                <span class="recipient-name">
+                  <%= order.address_dict[:recipient_name] %>
+                </span>
+                <%= order.address_dict[:street] %>,
+                  <%= order.address_dict[:city] %>,
+                    <%= order.address_dict[:state] %>
+                      <%= order.address_dict[:postcode] %>,
+                        <br>
+                        <%= order.address_dict[:country] %>
+              </address>
+              <p></p>
+              <% if purchased_labels[order.order_number.to_s] &&
+                purchased_labels[order.order_number.to_s][:tracking_code] &&
+                purchased_labels[order.order_number.to_s][:label_url] %>
+                <input type="text" class="tracking-code"
+                  value="<%= purchased_labels[order.order_number.to_s][:tracking_code] %>" readonly>
+                <br>
+                <a href="<%= purchased_labels[order.order_number.to_s][:label_url] %>" target="_blank">View Label</a>
+                <br></br>
+                <button id="printLabelBtn-<%= order.order_number %>" class="print-label-btn"
+                  data-label-url="<%= purchased_labels[order.order_number.to_s][:label_url] %>">
+                  PRINT SHIPPING LABEL
+                </button>
+                <% else %>
+                  <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
+                    <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
+                    <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
+                    <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
+                    <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
+                    <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
+                    <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
+                    <input type="hidden" name="shipping_phone"
+                      value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
+                    <input type="hidden" name="email"
+                      value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
+                    <% if order.address_dict[:country_code]=='US' %>
+                      <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
+                        <!-- Existing form inputs -->
+                        <button class="btn btn-primary print-btn" type="submit">
+                          Buy Shipping Label
+                        </button>
+                      </form>
+                      <% else %>
+                        <a href="https://www.easypost.com" target="_blank" class="btn btn-primary">
+                          Ship Internationally
+                        </a>
+                        <% end %>
+                  </form>
+                  <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>"
+                    placeholder="Tracking Code" readonly>
+                  <a href="#" class="label-link" data-order-number="<%= order.order_number %>" target="_blank"
+                    style="display:none;">View Label</a>
+                  <% end %>
+            </div>
+        </td>
+      </tr>
+      <% end %>
+  </tbody>
 </table>
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-const expandButtons = document.querySelectorAll('.expand-btn');
+  document.addEventListener('DOMContentLoaded', function () {
+    const expandButtons = document.querySelectorAll('.expand-btn');
 
-expandButtons.forEach(button => {
-  button.addEventListener('click', function() {
-    const targetId = this.getAttribute('data-target');
-    const targetRow = document.getElementById(targetId);
-    
-    if (targetRow.style.display === 'none') {
-      targetRow.style.display = 'table-row';
-      this.innerHTML = '&#9650;';
-    } else {
-      targetRow.style.display = 'none';
-      this.innerHTML = '&#9660;';
-    }
-  });
-});
+    expandButtons.forEach(button => {
+      button.addEventListener('click', function () {
+        const targetId = this.getAttribute('data-target');
+        const targetRow = document.getElementById(targetId);
 
-document.querySelectorAll('.buy-label-form').forEach(form => {
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const orderNumber = this.action.split('/').pop();
-    const shippingSection = this.closest('.shipping-section');
-    const trackingCodeInput = shippingSection.querySelector('.tracking-code');
-    const labelLink = shippingSection.querySelector('.label-link');
-    const printButton = shippingSection.querySelector(`#printLabelBtn-${orderNumber}`);
+        if (targetRow.style.display === 'none') {
+          targetRow.style.display = 'table-row';
+          this.innerHTML = '&#9650;';
+        } else {
+          targetRow.style.display = 'none';
+          this.innerHTML = '&#9660;';
+        }
+      });
+    });
 
-    fetch(this.action, {
-      method: 'POST',
-      body: new FormData(this),
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.tracking_code) {
-        trackingCodeInput.value = data.tracking_code;
-        trackingCodeInput.style.display = 'inline';
-        this.style.display = 'none';
-      }
-      if (data.label_url) {
-        labelLink.href = data.label_url;
-        labelLink.style.display = 'inline';
-        
-        // Create and add print button
-        const printButton = document.createElement('button');
-        printButton.id = `printLabelBtn-${orderNumber}`;
-        printButton.className = 'print-label-btn';
-        printButton.setAttribute('data-label-url', data.label_url);
-        printButton.textContent = 'PRINT SHIPPING LABEL';
-        
-        // Add the print button after the label link
-        labelLink.parentNode.insertBefore(printButton, labelLink.nextSibling);
-        
-        // Add event listener to the new button
-        printButton.addEventListener('click', function() {
-          const labelUrl = this.getAttribute('data-label-url');
-          fetch('/print_label', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              label_url: labelUrl
-            })
+    document.querySelectorAll('.buy-label-form').forEach(form => {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const orderNumber = this.action.split('/').pop();
+        const shippingSection = this.closest('.shipping-section');
+        const trackingCodeInput = shippingSection.querySelector('.tracking-code');
+        const labelLink = shippingSection.querySelector('.label-link');
+        const printButton = shippingSection.querySelector(`#printLabelBtn-${orderNumber}`);
+
+        fetch(this.action, {
+          method: 'POST',
+          body: new FormData(this),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.tracking_code) {
+              trackingCodeInput.value = data.tracking_code;
+              trackingCodeInput.style.display = 'inline';
+              this.style.display = 'none';
+            }
+            if (data.label_url) {
+              labelLink.href = data.label_url;
+              labelLink.style.display = 'inline';
+
+              // Create and add print button
+              const printButton = document.createElement('button');
+              printButton.id = `printLabelBtn-${orderNumber}`;
+              printButton.className = 'print-label-btn';
+              printButton.setAttribute('data-label-url', data.label_url);
+              printButton.textContent = 'PRINT SHIPPING LABEL';
+
+              // Add the print button after the label link
+              labelLink.parentNode.insertBefore(printButton, labelLink.nextSibling);
+
+              // Add event listener to the new button
+              printButton.addEventListener('click', function () {
+                const labelUrl = this.getAttribute('data-label-url');
+                fetch('/print_label', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    label_url: labelUrl
+                  })
+                })
+                  .then(response => response.json())
+                  .catch(error => console.error('Error:', error));
+              });
+            }
           })
+          .catch(error => console.error('Error:', error));
+      });
+    });
+
+
+    document.querySelectorAll('[id^="printLabelBtn-"]').forEach(button => {
+      button.addEventListener('click', function () {
+        const labelUrl = this.getAttribute('data-label-url');
+
+        fetch('/print_label', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            label_url: labelUrl
+          })
+        })
           .then(response => response.json())
           .catch(error => console.error('Error:', error));
-        });
-      }
-    })
-    .catch(error => console.error('Error:', error));
+      });
+    });
+
+
+
   });
-});
-
-
-document.querySelectorAll('[id^="printLabelBtn-"]').forEach(button => {
-  button.addEventListener('click', function() {
-    const labelUrl = this.getAttribute('data-label-url');
-    
-    fetch('/print_label', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        label_url: labelUrl
-      })
-    })
-    .then(response => response.json())
-    .catch(error => console.error('Error:', error));
-  });
-});
-
-
-
-});
 </script>

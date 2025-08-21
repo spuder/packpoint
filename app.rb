@@ -1,3 +1,5 @@
+# Ensure Ruby flushes output immediately for Docker logging
+STDOUT.sync = true
 # app.rb
 
 # Monkey patch until this is merged
@@ -40,6 +42,14 @@ module ShippingApp
         # Allow any host by setting permitted_hosts to empty array
         set :host_authorization, { permitted_hosts: [] }
       end
+
+      # Debug: List all available printer names at startup (after Environment.setup)
+      begin
+        printer_names = CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+        puts "Available printer names at startup: #{printer_names.inspect}"
+      rescue => e
+        puts "Error getting printer names at startup: #{e.class} - #{e.message}"
+      end
     end
 
     helpers do
@@ -67,13 +77,27 @@ module ShippingApp
       unshipped_orders = with_vcr { tindie_api.get_all_orders(false) }
       # puts unshipped_orders.inspect
       
+      # Check printer availability for UI feedback (don't create instance, just check)
+      printer_available = false
+      printer_error = nil
+      begin
+        available_printers = CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+        printer_available = available_printers.include?('PM-241-BT')
+        puts "Printer check: PM-241-BT #{printer_available ? 'available' : 'not found'} in #{available_printers.inspect}"
+      rescue => e
+        printer_error = e.message
+        puts "Printer availability check failed: #{e.class} - #{e.message}"
+      end
+      
       erb :orders, locals: {
         orders: unshipped_orders,
         purchased_labels: purchased_labels,
         username: ENV['TINDIE_USERNAME'],
         api_key: ENV['TINDIE_API_KEY'],
         countries: COUNTRY_FLAGS,
-        total_count: unshipped_orders.length
+        total_count: unshipped_orders.length,
+        printer_available: printer_available,
+        printer_error: printer_error
       }
     end
 
@@ -135,31 +159,57 @@ module ShippingApp
           end
         end
 
-        # Try to log available printers (if supported by CupsPrinter)
+        # Create printer instance for remote CUPS server (fresh connection each time)
+        puts "Creating CupsPrinter instance for PM-241-BT on #{ENV['CUPS_HOST']}:631"
+        
         begin
-          if CupsPrinter.respond_to?(:printers)
-            puts "Available printers: #{CupsPrinter.printers.inspect}"
-          else
-            puts "CupsPrinter.printers not available for listing printers."
+          # Verify printer is available using cupsffi (this works)
+          available_printers = CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+          unless available_printers.include?('PM-241-BT')
+            raise "PM-241-BT not found in available printers: #{available_printers.inspect}"
           end
+          puts "SUCCESS: Confirmed PM-241-BT is available on remote server"
+          
+          # Try cupsffi first (since you prefer the library approach)
+          puts "Attempting print via cupsffi library..."
+          begin
+            printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
+            puts "SUCCESS: Created printer instance with cupsffi"
+            
+            job = printer.print_file(cached_file)
+            puts "SUCCESS: cupsffi printing worked!"
+            
+            begin
+              status = job.status
+              puts "Print job status: #{status}"
+            rescue RuntimeError => e
+              puts "Error getting job status: #{e.class} - #{e.message}"
+              status = "submitted via cupsffi"
+            end
+            
+          rescue RuntimeError => cupsffi_error
+            puts "cupsffi printing failed: #{cupsffi_error.message}"
+            puts "Falling back to native CUPS lp command..."
+            
+            # Fallback to native CUPS command with explicit server
+            cups_server = "#{ENV['CUPS_HOST']}:631"
+            lp_command = "lp -h #{cups_server} -d PM-241-BT #{cached_file}"
+            puts "Running: #{lp_command}"
+            
+            result = `#{lp_command} 2>&1`
+            exit_code = $?.exitstatus
+            
+            if exit_code == 0
+              puts "SUCCESS: Native lp command worked: #{result.strip}"
+              status = "submitted via lp command"
+            else
+              raise "Both cupsffi and lp command failed. lp error: #{result}"
+            end
+          end
+          
         rescue => e
-          puts "Error listing printers: #{e.class} - #{e.message}"
-        end
-
-        printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
-        puts "Printing label: #{cached_file} on printer #{ENV['CUPS_HOST']}"
-        job = printer.print_file(cached_file)
-
-        begin
-          status = job.status
-        rescue RuntimeError => e
-          puts "Error getting job status: #{e.class} - #{e.message}"
-          if e.message.include?('Job not found')
-            # If job is not found, it likely completed successfully
-            status = "completed (fast job)"
-          else
-            raise e
-          end
+          puts "Failed to print: #{e.class} - #{e.message}"
+          raise
         end
 
         { success: true, message: "Print job sent successfully. Status: #{status}" }.to_json
