@@ -71,7 +71,7 @@ services:
     environment:
       - TS_AUTHKEY=${TS_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=packpoint-web${DEPLOY_ENV:+-$DEPLOY_ENV}
+      - TS_HOSTNAME=packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
       - TS_ACCEPT_DNS=true
       - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
     networks:
