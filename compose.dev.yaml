@@ -1,0 +1,97 @@
+# Corrected Docker Compose file for Packpoint with Tailscale sidecar
+
+services:
+  # The main application container
+  packpoint:
+    image: spuder/packpoint:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=America/Denver
+    ports:
+      - "9292:9292"
+    # network_mode: "service:tailscale"
+
+  # tailscale-config-init:
+  #   image: bash
+  #   container_name: tailscale-config-init-packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+  #   entrypoint:
+  #     - bash
+  #     - -c
+  #     - |
+  #       # Generate the configuration file. We use the service name 'packpoint'
+  #       # to connect to the other container on the shared network.
+  #       echo '{
+  #         "TCP": {
+  #           "443": {"HTTPS": true},
+  #           "80": {"HTTP": true}
+  #         },
+  #         "Web": {
+  #           "${TAILSCALE_DOMAIN}:443": {
+  #             "Handlers": {
+  #               "/hello": {"Text": "world"},
+  #               "/": {"Proxy": "http://localhost:9292"}
+  #             }
+  #           },
+  #           "${TAILSCALE_DOMAIN}:80": {
+  #             "Handlers": {
+  #               "/hello": {"Text": "world"},
+  #               "/": {"Proxy": "http://localhost:9292"}
+  #             }
+  #           }
+  #         }
+  #       }' > /tailscale-config/serve-config.json
+  #       cat /tailscale-config/serve-config.json
+  #   volumes:
+  #     - tailscale-config${DEPLOY_ENV:+-$DEPLOY_ENV}:/tailscale-config
+  #   env_file:
+  #     - .env
+  #   restart: "no"
+  #   network_mode: "none"
+
+  # This service generates the configuration file for tailscale serve
+  #                 "/": {"Proxy": "http://packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}:9292"}
+  # tailscale:
+  #   image: tailscale/tailscale:v1.86
+  #   container_name: packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun:/dev/net/tun
+  #   volumes:
+  #     - ./tailscale/varlib-packpoint:/var/lib/tailscale
+  #     - ./tailscale/tmp-packpoint:/tmp
+  #     - tailscale-config${DEPLOY_ENV:+-$DEPLOY_ENV}:/tailscale-config:ro
+  #   environment:
+  #     - TS_AUTHKEY=${TS_AUTH_KEY}
+  #     - TS_STATE_DIR=/var/lib/tailscale
+  #     - TS_HOSTNAME=packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+  #     - TS_ACCEPT_DNS=true
+  #     - TS_SERVE_CONFIG=/tailscale-config/serve-config.json
+  #   networks:
+  #     - packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+  #   # network_mode: "service:packpoint-tailscale${DEPLOY_ENV:+-$DEPLOY_ENV}"
+  #   depends_on:
+  #     - tailscale-config-init
+
+# Define the shared bridge network
+networks:
+  # packpoint:
+  #   driver: bridge
+  # packpoint-dev:
+  #   driver: bridge
+  packpoint-foobar:
+    driver: bridge
+
+volumes:
+  # tailscale-config:
+  # tailscale-config-dev:
+  tailscale-config-foobar:
