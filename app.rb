@@ -26,7 +26,8 @@ module ShippingApp
       'FR' => '🇫🇷',  # France
       'PL' => '🇵🇱',  # Poland
       'SG' => '🇸🇬',  # Singapore
-      'SK' => '🇸🇰'   # Slovakia
+      'SK' => '🇸🇰',  # Slovakia
+      'SE' => '🇸🇪',  # Sweden
     }.freeze
 
     configure do
