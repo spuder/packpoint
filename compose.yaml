@@ -13,6 +13,7 @@ services:
     environment:
       - TZ=America/Denver
       - TINDIE_USERNAME=${TINDIE_USERNAME}
+      - TINDIE_API_KEY=${TINDIE_API_KEY}
       - EASYPOST_PROD_API_KEY=${EASYPOST_PROD_API_KEY}
       - EASYPOST_PROD_FROM_ADDRESS=${EASYPOST_PROD_FROM_ADDRESS}
       - RACK_ENV=production
