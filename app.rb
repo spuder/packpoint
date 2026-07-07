@@ -67,6 +67,23 @@ module ShippingApp
       def purchased_labels
         session[:orders] || {}
       end
+
+      def order_age(date)
+        seconds = (Time.now - date.to_time).to_i
+        return "#{seconds / 60}m" if seconds < 3600
+        return "#{seconds / 3600}h" if seconds < 86400
+        "#{seconds / 86400}d"
+      end
+
+      def order_aging?(date)
+        (Time.now - date.to_time) > 48 * 3600
+      end
+
+      def order_status(order)
+        return 'intl' unless order.address_dict[:country_code] == 'US'
+        label = purchased_labels[order.order_number.to_s]
+        label && label[:tracking_code] && label[:label_url] ? 'ready' : 'need'
+      end
     end
 
     get '/orders' do

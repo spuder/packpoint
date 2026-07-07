@@ -1,252 +1,271 @@
-<div style="display: flex; justify-content: space-between; align-items: center;">
-  <h3>Orders</h3>
-  <% if ENV['APP_ENV']=='development' %>
-    <h5><span style="color: #FF2288;">Development</span></h5>
+<header class="ks-header">
+  <div class="ks-brand">
+    <div class="ks-logo">P</div>
+    <div>
+      <div class="ks-brand-name">PackPoint</div>
+      <div class="ks-brand-sub">Shipping Station · STN-01</div>
+    </div>
+  </div>
+
+  <div class="ks-header-right">
+    <% if ENV['APP_ENV'] == 'development' %>
+      <div class="ks-dev-badge">Development</div>
     <% end %>
-      <h4>Unshipped: <span style="color: #9b4dca;">
-          <%= orders.count { |order| !order.shipped } %>
-        </span></h4>
-</div>
 
-<!-- Printer Status Indicator -->
-<div
-  style="margin-bottom: 15px; padding: 10px; border-radius: 5px; <% if printer_available %>background-color: #d4edda; border: 1px solid #c3e6cb;<% else %>background-color: #f8d7da; border: 1px solid #f5c6cb;<% end %>">
-  <% if printer_available %>
-    <span style="color: #155724; font-weight: bold;">✓ Printer PM-241-BT Ready</span>
-    <% elsif printer_error %>
-      <span style="color: #721c24; font-weight: bold;">✗ Printer Error: <%= printer_error %></span>
-      <% else %>
-        <span style="color: #721c24; font-weight: bold;">✗ Printer PM-241-BT Not Available</span>
+    <div class="ks-printer-pill <%= printer_available ? '' : 'ks-pill-error' %>">
+      <span class="ks-dot"></span>
+      <span>
+        <% if printer_available %>
+          PM-241-BT Ready
+        <% elsif printer_error %>
+          PM-241-BT Error: <%= printer_error %>
+        <% else %>
+          PM-241-BT Not Available
         <% end %>
+      </span>
+    </div>
+
+    <div class="ks-theme-toggle">
+      <button type="button" class="ks-theme-btn" data-theme-choice="light">Light</button>
+      <button type="button" class="ks-theme-btn" data-theme-choice="dark">Dark</button>
+    </div>
+  </div>
+</header>
+
+<% aging_count = orders.count { |order| order_aging?(order.date) } %>
+<div class="ks-subbar">
+  <div class="ks-store-tabs">
+    <div class="ks-tab">
+      <span class="ks-tab-dot"></span>
+      <span>Tindie.com</span>
+      <span class="ks-tab-count"><%= orders.count %></span>
+    </div>
+  </div>
+
+  <div class="ks-subbar-right">
+    <div class="ks-stat">
+      <span class="ks-stat-num"><%= orders.count { |order| !order.shipped } %></span>
+      <span class="ks-stat-label">unshipped</span>
+    </div>
+    <div class="ks-aging <%= 'ks-aging-active' if aging_count > 0 %>">
+      <span class="ks-aging-num"><%= aging_count %></span> aging &gt; 48h
+    </div>
+  </div>
 </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Actions</th>
-      <th>Store</th>
-      <th>Order Number</th>
-      <th>Date</th>
-      <th>Shipping Name</th>
-      <th>Country</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% orders.sort_by(&:date).each do |order| %>
-      <tr>
-        <td>
-          <button class="expand-btn" data-target="details-<%= order.order_number %>">
-            &#9660;
-          </button>
-        </td>
-        <td>Tindie.com</td>
-        <td><b>
-            <%= order.order_number %>
-          </b></td>
-        <td>
-          <%= order.date.strftime("%B %d %H:%M") %>
-        </td>
-        <td>
-          <%= order.address_dict[:recipient_name] %>
-        </td>
-        <td>
-          <%= countries[order.address_dict[:country_code]] %>
-        </td>
-      </tr>
-      <tr class="details-row" id="details-<%= order.order_number %>" style="display: none;">
-        <td colspan="4">
-          <div class="details-container">
-            <div class="items-section">
-              <h4>Items</h4>
-              Order: <b>
-                <%= order.order_number %>
-              </b>
-              <% order.products.each do |item| %>
-                <div class="item-details">
-                  <% if item.qty> 1 %>
-                    <span style="font-size: 1.2em; color: #9b4dca; font-weight: bold;">
-                      Quantity: <%= item.qty %>
-                    </span>
-                    <% else %>
-                      Quantity: <%= item.qty %>
-                        <% end %>
-                          | <b>
-                            <%= item.options %>
-                          </b><br>
-                          Total: $<%= '%.2f' % item.price %>
-                </div>
-                <p></p>
-                <a href="https://www.tindie.com/orders/print/<%= order.order_number %>"
-                  onclick="window.open(this.href, '_blank'); return false;">View Packing Slip</a>
-                <br>
-                <button
-                  onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')"
-                  class="btn btn-primary print-btn">
-                  Print Packing Slip
-                </button>
-                <% end %>
-            </div>
-            <div class="shipping-section">
-              <h4>Shipping</h4>
-              <address>
-                <span class="recipient-name">
-                  <%= order.address_dict[:recipient_name] %>
-                </span>
-                <%= order.address_dict[:street] %>,
-                  <%= order.address_dict[:city] %>,
-                    <%= order.address_dict[:state] %>
-                      <%= order.address_dict[:postcode] %>,
-                        <br>
-                        <%= order.address_dict[:country] %>
-              </address>
-              <p></p>
-              <% if purchased_labels[order.order_number.to_s] &&
-                purchased_labels[order.order_number.to_s][:tracking_code] &&
-                purchased_labels[order.order_number.to_s][:label_url] %>
-                <input type="text" class="tracking-code"
-                  value="<%= purchased_labels[order.order_number.to_s][:tracking_code] %>" readonly>
-                <br>
-                <a href="<%= purchased_labels[order.order_number.to_s][:label_url] %>" target="_blank">View Label</a>
-                <br></br>
-                <button id="printLabelBtn-<%= order.order_number %>" class="print-label-btn"
-                  data-label-url="<%= purchased_labels[order.order_number.to_s][:label_url] %>">
-                  PRINT SHIPPING LABEL
-                </button>
-                <% else %>
-                  <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
-                    <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
-                    <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
-                    <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
-                    <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
-                    <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
-                    <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
-                    <input type="hidden" name="shipping_phone"
-                      value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
-                    <input type="hidden" name="email"
-                      value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                    <% if order.address_dict[:country_code]=='US' %>
-                      <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
-                        <!-- Existing form inputs -->
-                        <button class="btn btn-primary print-btn" type="submit">
-                          Buy Shipping Label
-                        </button>
-                      </form>
-                      <% else %>
-                        <a href="https://www.easypost.com" target="_blank" class="btn btn-primary">
-                          Ship Internationally
-                        </a>
-                        <% end %>
-                  </form>
-                  <input type="text" class="tracking-code" data-order-number="<%= order.order_number %>"
-                    placeholder="Tracking Code" readonly>
-                  <a href="#" class="label-link" data-order-number="<%= order.order_number %>" target="_blank"
-                    style="display:none;">View Label</a>
-                  <% end %>
-            </div>
-        </td>
-      </tr>
-      <% end %>
-  </tbody>
-</table>
+<div class="ks-table">
+  <div class="ks-col-header">
+    <div></div>
+    <div>Product</div>
+    <div>Store</div>
+    <div>Order</div>
+    <div>Age</div>
+    <div>Recipient</div>
+    <div>Destination</div>
+    <div class="ks-col-right">Label</div>
+  </div>
 
+  <% orders.sort_by(&:date).each do |order| %>
+    <% status = order_status(order)
+       label = purchased_labels[order.order_number.to_s]
+       total_qty = order.products.sum(&:qty)
+       total_price = order.products.sum { |p| p.price.to_f } %>
+    <div class="ks-row-wrap">
+      <div class="ks-row" data-target="details-<%= order.order_number %>">
+        <div class="ks-chevron">▸</div>
+        <div>
+          <div class="ks-product-name"><%= order.products.map(&:name).join(", ") %></div>
+          <div class="ks-product-sub"><%= total_qty %> <%= total_qty == 1 ? 'item' : 'items' %> · $<%= '%.2f' % total_price %></div>
+        </div>
+        <div>
+          <span class="ks-store-badge"><span class="ks-store-dot"></span>Tindie</span>
+        </div>
+        <div class="ks-order-no"><%= order.order_number %></div>
+        <div class="ks-age <%= 'ks-age-hot' if order_aging?(order.date) %>"><%= order_age(order.date) %></div>
+        <div class="ks-recipient"><%= order.address_dict[:recipient_name] %></div>
+        <div class="ks-destination">
+          <span class="ks-flag"><%= countries[order.address_dict[:country_code]] %></span>
+          <span><%= order.address_dict[:country] %></span>
+        </div>
+        <div class="ks-label-col">
+          <span class="ks-status-pill ks-status-<%= status %>">
+            <% if status == 'need' %>
+              Needs label
+            <% elsif status == 'ready' %>
+              Label ready
+            <% else %>
+              International
+            <% end %>
+          </span>
+        </div>
+      </div>
+
+      <div class="ks-detail" id="details-<%= order.order_number %>" style="display:none;">
+        <div class="ks-detail-grid">
+          <div class="ks-detail-box">
+            <div class="ks-detail-box-head">
+              <div class="ks-detail-box-title">Items</div>
+              <div class="ks-detail-order-no"><%= order.order_number %></div>
+            </div>
+            <% order.products.each do |item| %>
+              <div class="ks-item-row">
+                <span class="ks-qty-badge <%= 'ks-qty-badge-multi' if item.qty > 1 %>">&times;<%= item.qty %></span>
+                <div class="ks-item-info">
+                  <div class="ks-item-name"><%= item.name %></div>
+                  <div class="ks-item-opt"><%= item.options %></div>
+                </div>
+                <div class="ks-item-price">$<%= '%.2f' % item.price %></div>
+              </div>
+            <% end %>
+            <div class="ks-item-actions">
+              <a class="ks-btn-outline" href="https://www.tindie.com/orders/print/<%= order.order_number %>"
+                onclick="window.open(this.href, '_blank'); return false;">Print Packing Slip</a>
+              <button type="button" class="ks-btn-ghost"
+                onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
+                Slip &rarr;</button>
+            </div>
+          </div>
+
+          <div class="ks-detail-box">
+            <div class="ks-detail-box-title">Ship To</div>
+            <div class="ks-ship-address">
+              <div class="ks-ship-name"><%= order.address_dict[:recipient_name] %></div>
+              <div class="ks-ship-muted"><%= order.address_dict[:street] %></div>
+              <div class="ks-ship-muted"><%= order.address_dict[:city] %>, <%= order.address_dict[:state] %> <%= order.address_dict[:postcode] %></div>
+              <div class="ks-ship-country">
+                <span class="ks-flag"><%= countries[order.address_dict[:country_code]] %></span>
+                <span><%= order.address_dict[:country] %></span>
+              </div>
+            </div>
+
+            <div class="ks-ship-action">
+              <% if status == 'ready' && label %>
+                <div class="ks-tracking-box">
+                  <span class="ks-tracking-label">TRK</span>
+                  <span class="ks-tracking-code"><%= label[:tracking_code] %></span>
+                </div>
+                <div class="ks-ship-btn-row">
+                  <button type="button" class="ks-btn-primary print-label-btn" data-label-url="<%= label[:label_url] %>">Print Shipping Label</button>
+                  <a class="ks-btn-outline label-link" href="<%= label[:label_url] %>" target="_blank">View</a>
+                </div>
+              <% elsif status == 'intl' %>
+                <div class="ks-hint-box">International destination · customs required. Process via EasyPost.</div>
+                <a class="ks-btn-intl" href="https://www.easypost.com" target="_blank">Ship Internationally &rarr;</a>
+              <% else %>
+                <div class="ks-hint-box">Domestic (US) · verify stock, then buy the label.</div>
+                <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
+                  <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
+                  <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
+                  <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
+                  <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
+                  <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
+                  <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
+                  <input type="hidden" name="shipping_phone" value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
+                  <input type="hidden" name="email" value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
+                  <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
+                </form>
+                <div class="ks-tracking-box" style="display:none;">
+                  <span class="ks-tracking-label">TRK</span>
+                  <span class="ks-tracking-code"></span>
+                </div>
+                <div class="ks-ship-btn-row" style="display:none;">
+                  <button type="button" class="ks-btn-primary print-label-btn" data-label-url="">Print Shipping Label</button>
+                  <a class="ks-btn-outline label-link" href="#" target="_blank">View</a>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<div class="ks-footer">
+  <span>Synced from Tindie</span>
+  <span class="ks-footer-mono"><%= orders.length %> unshipped orders</span>
+</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const expandButtons = document.querySelectorAll('.expand-btn');
-
-    expandButtons.forEach(button => {
-      button.addEventListener('click', function () {
-        const targetId = this.getAttribute('data-target');
-        const targetRow = document.getElementById(targetId);
-
-        if (targetRow.style.display === 'none') {
-          targetRow.style.display = 'table-row';
-          this.innerHTML = '&#9650;';
-        } else {
-          targetRow.style.display = 'none';
-          this.innerHTML = '&#9660;';
-        }
+    document.querySelectorAll('.ks-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        var target = document.getElementById(row.dataset.target);
+        var expanded = row.classList.toggle('ks-row-expanded');
+        target.style.display = expanded ? 'block' : 'none';
       });
     });
 
-    document.querySelectorAll('.buy-label-form').forEach(form => {
+    document.querySelectorAll('.buy-label-form').forEach(function (form) {
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        const orderNumber = this.action.split('/').pop();
-        const shippingSection = this.closest('.shipping-section');
-        const trackingCodeInput = shippingSection.querySelector('.tracking-code');
-        const labelLink = shippingSection.querySelector('.label-link');
-        const printButton = shippingSection.querySelector(`#printLabelBtn-${orderNumber}`);
+        e.stopPropagation();
 
-        fetch(this.action, {
+        var box = form.closest('.ks-detail-box');
+        var trackingBox = box.querySelector('.ks-tracking-box');
+        var trackingCodeEl = box.querySelector('.ks-tracking-code');
+        var btnRow = box.querySelector('.ks-ship-btn-row');
+        var printBtn = box.querySelector('.print-label-btn');
+        var labelLink = box.querySelector('.label-link');
+
+        fetch(form.action, {
           method: 'POST',
-          body: new FormData(this),
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
+          body: new FormData(form),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-          .then(response => response.json())
-          .then(data => {
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
             if (data.tracking_code) {
-              trackingCodeInput.value = data.tracking_code;
-              trackingCodeInput.style.display = 'inline';
-              this.style.display = 'none';
+              trackingCodeEl.textContent = data.tracking_code;
+              trackingBox.style.display = 'flex';
+              form.style.display = 'none';
             }
             if (data.label_url) {
+              printBtn.setAttribute('data-label-url', data.label_url);
               labelLink.href = data.label_url;
-              labelLink.style.display = 'inline';
-
-              // Create and add print button
-              const printButton = document.createElement('button');
-              printButton.id = `printLabelBtn-${orderNumber}`;
-              printButton.className = 'print-label-btn';
-              printButton.setAttribute('data-label-url', data.label_url);
-              printButton.textContent = 'PRINT SHIPPING LABEL';
-
-              // Add the print button after the label link
-              labelLink.parentNode.insertBefore(printButton, labelLink.nextSibling);
-
-              // Add event listener to the new button
-              printButton.addEventListener('click', function () {
-                const labelUrl = this.getAttribute('data-label-url');
-                fetch('/print_label', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    label_url: labelUrl
-                  })
-                })
-                  .then(response => response.json())
-                  .catch(error => console.error('Error:', error));
-              });
+              btnRow.style.display = 'flex';
             }
           })
-          .catch(error => console.error('Error:', error));
+          .catch(function (error) { console.error('Error:', error); });
       });
     });
 
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.print-label-btn');
+      if (!btn) return;
+      e.stopPropagation();
+      var labelUrl = btn.getAttribute('data-label-url');
+      if (!labelUrl) return;
 
-    document.querySelectorAll('[id^="printLabelBtn-"]').forEach(button => {
-      button.addEventListener('click', function () {
-        const labelUrl = this.getAttribute('data-label-url');
+      fetch('/print_label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label_url: labelUrl })
+      })
+        .then(function (response) { return response.json(); })
+        .catch(function (error) { console.error('Error:', error); });
+    });
 
-        fetch('/print_label', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            label_url: labelUrl
-          })
-        })
-          .then(response => response.json())
-          .catch(error => console.error('Error:', error));
+    // Theme toggle
+    var root = document.documentElement;
+    var stored = localStorage.getItem('packpoint-theme');
+    if (stored) root.dataset.theme = stored;
+
+    function updateThemeButtons() {
+      var mode = root.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.querySelectorAll('.ks-theme-btn').forEach(function (btn) {
+        btn.classList.toggle('ks-theme-btn-active', btn.dataset.themeChoice === mode);
+      });
+    }
+
+    document.querySelectorAll('.ks-theme-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        root.dataset.theme = btn.dataset.themeChoice;
+        localStorage.setItem('packpoint-theme', btn.dataset.themeChoice);
+        updateThemeButtons();
       });
     });
 
-
-
+    updateThemeButtons();
   });
 </script>
