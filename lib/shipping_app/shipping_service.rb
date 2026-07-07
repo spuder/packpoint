@@ -1,25 +1,18 @@
 module ShippingApp
     class ShippingService
-      def initialize(env = ENV['APP_ENV'])
-        @client = create_client(env)
+      def initialize
+        @client = create_client
       end
-  
+
       def create_label(order_number, order_data)
         shipment = create_shipment(order_number, order_data)
         buy_shipment(shipment)
       end
-  
+
       private
-  
-      def create_client(env)
-        api_key = case env
-        when 'development' then ENV['EASYPOST_TEST_API_KEY']
-        when 'production' then ENV['EASYPOST_PROD_API_KEY']
-        else
-          raise "Unknown APP_ENV: #{env}"
-        end
-        
-        EasyPost::Client.new(api_key: api_key)
+
+      def create_client
+        EasyPost::Client.new(api_key: ENV['EASYPOST_API_KEY'])
       end
   
       def create_shipment(order_number, order_data)
