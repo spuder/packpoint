@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+    container_name: packpoint
     restart: unless-stopped
     # env_file:
     #   - .env
