@@ -1,0 +1,21 @@
+# Corrected Docker Compose file for Packpoint with Tailscale sidecar
+
+services:
+  # The main application container
+  packpoint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: packpoint${DEPLOY_ENV:+-$DEPLOY_ENV}
+    restart: unless-stopped
+    # env_file:
+    #   - .env
+    environment:
+      - TZ=America/Denver
+    # ports:
+    #   - "9292:9292"
+    labels:
+      - "docktail.service.enable=true"
+      - "docktail.service.name=packpoint"
+      - "docktail.service.port=9292"
+      - "docktail.service.service-port=443"
