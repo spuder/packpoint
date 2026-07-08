@@ -72,8 +72,7 @@
     </div>
 
     <% orders.sort_by(&:date).each do |order| %>
-      <% status=order_status(order) label=purchased_labels[order.order_number.to_s] total_qty=order.products.sum(&:qty)
-        total_price=order.products.sum { |p| p.price.to_f } %>
+      <% status = order_status(order); label = purchased_labels[order.order_number.to_s]; total_qty = order.products.sum(&:qty); total_price = order.products.sum { |p| p.price.to_f } %>
         <div class="ks-row-wrap">
           <div class="ks-row" data-target="details-<%= order.order_number %>">
             <div class="ks-chevron">▸</div>
