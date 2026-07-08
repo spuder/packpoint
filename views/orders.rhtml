@@ -8,264 +8,366 @@
   </div>
 
   <div class="ks-header-right">
-    <% if ENV['APP_ENV'] == 'development' %>
+    <% if ENV['APP_ENV']=='development' %>
       <div class="ks-dev-badge">Development</div>
-    <% end %>
+      <% end %>
 
-    <div class="ks-printer-pill <%= printer_available ? '' : 'ks-pill-error' %>">
-      <span class="ks-dot"></span>
-      <span>
-        <% if printer_available %>
-          PM-241-BT Ready
-        <% elsif printer_error %>
-          PM-241-BT Error: <%= printer_error %>
-        <% else %>
-          PM-241-BT Not Available
-        <% end %>
-      </span>
-    </div>
+        <div class="ks-printer-pill <%= printer_available ? '' : 'ks-pill-error' %>">
+          <span class="ks-dot"></span>
+          <span>
+            <% if printer_available %>
+              PM-241-BT Ready
+              <% elsif printer_error %>
+                PM-241-BT Error: <%= printer_error %>
+                  <% else %>
+                    PM-241-BT Not Available
+                    <% end %>
+          </span>
+        </div>
 
-    <div class="ks-theme-toggle">
-      <button type="button" class="ks-theme-btn" data-theme-choice="light">Light</button>
-      <button type="button" class="ks-theme-btn" data-theme-choice="dark">Dark</button>
-    </div>
+        <div class="ks-theme-toggle">
+          <button type="button" class="ks-theme-btn" data-theme-choice="light">Light</button>
+          <button type="button" class="ks-theme-btn" data-theme-choice="dark">Dark</button>
+        </div>
   </div>
 </header>
 
-<% aging_count = orders.count { |order| order_aging?(order.date) } %>
-<div class="ks-subbar">
-  <div class="ks-store-tabs">
-    <div class="ks-tab">
-      <span class="ks-tab-dot"></span>
-      <span>Tindie.com</span>
-      <span class="ks-tab-count"><%= orders.count %></span>
-    </div>
-  </div>
-
-  <div class="ks-subbar-right">
-    <div class="ks-stat">
-      <span class="ks-stat-num"><%= orders.count { |order| !order.shipped } %></span>
-      <span class="ks-stat-label">unshipped</span>
-    </div>
-    <div class="ks-aging <%= 'ks-aging-active' if aging_count > 0 %>">
-      <span class="ks-aging-num"><%= aging_count %></span> aging &gt; 48h
-    </div>
-  </div>
-</div>
-
-<div class="ks-table">
-  <div class="ks-col-header">
-    <div></div>
-    <div>Product</div>
-    <div>Store</div>
-    <div>Order</div>
-    <div>Age</div>
-    <div>Recipient</div>
-    <div>Destination</div>
-    <div class="ks-col-right">Label</div>
-  </div>
-
-  <% orders.sort_by(&:date).each do |order| %>
-    <% status = order_status(order)
-       label = purchased_labels[order.order_number.to_s]
-       total_qty = order.products.sum(&:qty)
-       total_price = order.products.sum { |p| p.price.to_f } %>
-    <div class="ks-row-wrap">
-      <div class="ks-row" data-target="details-<%= order.order_number %>">
-        <div class="ks-chevron">▸</div>
-        <div>
-          <div class="ks-product-name"><%= order.products.map(&:name).join(", ") %></div>
-          <div class="ks-product-sub"><%= total_qty %> <%= total_qty == 1 ? 'item' : 'items' %> · $<%= '%.2f' % total_price %></div>
-        </div>
-        <div>
-          <span class="ks-store-badge"><span class="ks-store-dot"></span>Tindie</span>
-        </div>
-        <div class="ks-order-no"><%= order.order_number %></div>
-        <div class="ks-age <%= 'ks-age-hot' if order_aging?(order.date) %>"><%= order_age(order.date) %></div>
-        <div class="ks-recipient"><%= order.address_dict[:recipient_name] %></div>
-        <div class="ks-destination">
-          <span class="ks-flag"><%= countries[order.address_dict[:country_code]] %></span>
-          <span><%= order.address_dict[:country] %></span>
-        </div>
-        <div class="ks-label-col">
-          <span class="ks-status-pill ks-status-<%= status %>">
-            <% if status == 'need' %>
-              Needs label
-            <% elsif status == 'ready' %>
-              Label ready
-            <% else %>
-              International
-            <% end %>
-          </span>
-        </div>
+<% aging_count=orders.count { |order| order_aging?(order.date) } %>
+  <div class="ks-subbar">
+    <div class="ks-store-tabs">
+      <div class="ks-tab">
+        <span class="ks-tab-dot"></span>
+        <span>Tindie.com</span>
+        <span class="ks-tab-count">
+          <%= orders.count %>
+        </span>
       </div>
+    </div>
 
-      <div class="ks-detail" id="details-<%= order.order_number %>" style="display:none;">
-        <div class="ks-detail-grid">
-          <div class="ks-detail-box">
-            <div class="ks-detail-box-head">
-              <div class="ks-detail-box-title">Items</div>
-              <div class="ks-detail-order-no"><%= order.order_number %></div>
-            </div>
-            <% order.products.each do |item| %>
-              <div class="ks-item-row">
-                <span class="ks-qty-badge <%= 'ks-qty-badge-multi' if item.qty > 1 %>">&times;<%= item.qty %></span>
-                <div class="ks-item-info">
-                  <div class="ks-item-name"><%= item.name %></div>
-                  <div class="ks-item-opt"><%= item.options %></div>
-                </div>
-                <div class="ks-item-price">$<%= '%.2f' % item.price %></div>
+    <div class="ks-subbar-right">
+      <div class="ks-stat">
+        <span class="ks-stat-num">
+          <%= orders.count { |order| !order.shipped } %>
+        </span>
+        <span class="ks-stat-label">unshipped</span>
+      </div>
+      <div class="ks-aging <%= 'ks-aging-active' if aging_count > 0 %>">
+        <span class="ks-aging-num">
+          <%= aging_count %>
+        </span> aging &gt; 48h
+      </div>
+    </div>
+  </div>
+
+  <div class="ks-table">
+    <div class="ks-col-header">
+      <div></div>
+      <div>Product</div>
+      <div>Store</div>
+      <div>Order</div>
+      <div>Age</div>
+      <div>Recipient</div>
+      <div>Destination</div>
+      <div class="ks-col-right">Label</div>
+    </div>
+
+    <% orders.sort_by(&:date).each do |order| %>
+      <% status=order_status(order) label=purchased_labels[order.order_number.to_s] total_qty=order.products.sum(&:qty)
+        total_price=order.products.sum { |p| p.price.to_f } %>
+        <div class="ks-row-wrap">
+          <div class="ks-row" data-target="details-<%= order.order_number %>">
+            <div class="ks-chevron">▸</div>
+            <div>
+              <div class="ks-product-name">
+                <%= order.products.map(&:name).join(", ") %></div>
+          <div class=" ks-product-sub">
+                  <%= total_qty %>
+                    <%= total_qty==1 ? 'item' : 'items' %> · $<%= '%.2f' % total_price %>
               </div>
-            <% end %>
-            <div class="ks-item-actions">
-              <a class="ks-btn-outline" href="https://www.tindie.com/orders/print/<%= order.order_number %>"
-                onclick="window.open(this.href, '_blank'); return false;">Print Packing Slip</a>
-              <button type="button" class="ks-btn-ghost"
-                onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
-                Slip &rarr;</button>
+            </div>
+            <div>
+              <span class="ks-store-badge"><span class="ks-store-dot"></span>Tindie</span>
+            </div>
+            <div class="ks-order-no">
+              <%= order.order_number %>
+            </div>
+            <div class="ks-age <%= 'ks-age-hot' if order_aging?(order.date) %>">
+              <%= order_age(order.date) %>
+            </div>
+            <div class="ks-recipient">
+              <%= order.address_dict[:recipient_name] %>
+            </div>
+            <div class="ks-destination">
+              <span class="ks-flag">
+                <%= countries[order.address_dict[:country_code]] %>
+              </span>
+              <span>
+                <%= order.address_dict[:country] %>
+              </span>
+            </div>
+            <div class="ks-label-col">
+              <span class="ks-status-pill ks-status-<%= status %>">
+                <% if status=='need' %>
+                  Needs label
+                  <% elsif status=='ready' %>
+                    Label ready
+                    <% else %>
+                      International
+                      <% end %>
+              </span>
             </div>
           </div>
 
-          <div class="ks-detail-box">
-            <div class="ks-detail-box-title">Ship To</div>
-            <div class="ks-ship-address">
-              <div class="ks-ship-name"><%= order.address_dict[:recipient_name] %></div>
-              <div class="ks-ship-muted"><%= order.address_dict[:street] %></div>
-              <div class="ks-ship-muted"><%= order.address_dict[:city] %>, <%= order.address_dict[:state] %> <%= order.address_dict[:postcode] %></div>
-              <div class="ks-ship-country">
-                <span class="ks-flag"><%= countries[order.address_dict[:country_code]] %></span>
-                <span><%= order.address_dict[:country] %></span>
+          <div class="ks-detail" id="details-<%= order.order_number %>" style="display:none;">
+            <div class="ks-detail-grid">
+              <div class="ks-detail-box">
+                <div class="ks-detail-box-head">
+                  <div class="ks-detail-box-title">Items</div>
+                  <div class="ks-detail-order-no">
+                    <%= order.order_number %>
+                  </div>
+                </div>
+                <% order.products.each do |item| %>
+                  <div class="ks-item-row">
+                    <span class="ks-qty-badge <%= 'ks-qty-badge-multi' if item.qty > 1 %>">&times;<%= item.qty %></span>
+                    <div class="ks-item-info">
+                      <div class="ks-item-name">
+                        <%= item.name %>
+                      </div>
+                      <div class="ks-item-opt">
+                        <%= item.options %>
+                      </div>
+                    </div>
+                    <div class="ks-item-price">$<%= '%.2f' % item.price %>
+                    </div>
+                  </div>
+                  <% end %>
+                    <div class="ks-item-actions">
+                      <a class="ks-btn-outline" href="https://www.tindie.com/orders/print/<%= order.order_number %>"
+                        onclick="window.open(this.href, '_blank'); return false;">Print Packing Slip</a>
+                      <button type="button" class="ks-btn-ghost"
+                        onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
+                        Slip &rarr;</button>
+                    </div>
               </div>
-            </div>
 
-            <div class="ks-ship-action">
-              <% if status == 'ready' && label %>
-                <div class="ks-tracking-box">
-                  <span class="ks-tracking-label">TRK</span>
-                  <span class="ks-tracking-code"><%= label[:tracking_code] %></span>
+              <div class="ks-detail-box">
+                <div class="ks-detail-box-title">Ship To</div>
+                <div class="ks-ship-address">
+                  <div class="ks-ship-name">
+                    <%= order.address_dict[:recipient_name] %>
+                  </div>
+                  <div class="ks-ship-muted">
+                    <%= order.address_dict[:street] %>
+                  </div>
+                  <div class="ks-ship-muted">
+                    <%= order.address_dict[:city] %>, <%= order.address_dict[:state] %>
+                        <%= order.address_dict[:postcode] %>
+                  </div>
+                  <div class="ks-ship-country">
+                    <span class="ks-flag">
+                      <%= countries[order.address_dict[:country_code]] %>
+                    </span>
+                    <span>
+                      <%= order.address_dict[:country] %>
+                    </span>
+                  </div>
                 </div>
-                <div class="ks-ship-btn-row">
-                  <button type="button" class="ks-btn-primary print-label-btn" data-label-url="<%= label[:label_url] %>">Print Shipping Label</button>
-                  <a class="ks-btn-outline label-link" href="<%= label[:label_url] %>" target="_blank">View</a>
+
+                <div class="ks-ship-action">
+                  <% if status=='ready' && label %>
+                    <div class="ks-tracking-box">
+                      <span class="ks-tracking-label">TRK</span>
+                      <span class="ks-tracking-code">
+                        <%= label[:tracking_code] %>
+                      </span>
+                    </div>
+                    <div class="ks-ship-btn-row">
+                      <button type="button" class="ks-btn-primary print-label-btn"
+                        data-label-url="<%= label[:label_url] %>">Print Shipping Label</button>
+                      <a class="ks-btn-outline label-link" href="<%= label[:label_url] %>" target="_blank">View</a>
+                    </div>
+                    <div class="ks-print-status" style="display:none;"></div>
+                    <% elsif status=='intl' %>
+                      <div class="ks-hint-box">International destination · customs required. Process via EasyPost.</div>
+                      <a class="ks-btn-intl" href="https://www.easypost.com" target="_blank">Ship Internationally
+                        &rarr;</a>
+                      <% else %>
+                        <div class="ks-hint-box">Domestic (US)</div>
+                        <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
+                          <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
+                          <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
+                          <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
+                          <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
+                          <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
+                          <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
+                          <input type="hidden" name="shipping_phone"
+                            value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
+                          <input type="hidden" name="email"
+                            value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
+                          <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
+                        </form>
+                        <div class="ks-form-error" style="display:none;"></div>
+                        <div class="ks-tracking-box" style="display:none;">
+                          <span class="ks-tracking-label">TRK</span>
+                          <span class="ks-tracking-code"></span>
+                        </div>
+                        <div class="ks-ship-btn-row" style="display:none;">
+                          <button type="button" class="ks-btn-primary print-label-btn" data-label-url="">Print Shipping
+                            Label</button>
+                          <a class="ks-btn-outline label-link" href="#" target="_blank">View</a>
+                        </div>
+                        <div class="ks-print-status" style="display:none;"></div>
+                        <% end %>
                 </div>
-              <% elsif status == 'intl' %>
-                <div class="ks-hint-box">International destination · customs required. Process via EasyPost.</div>
-                <a class="ks-btn-intl" href="https://www.easypost.com" target="_blank">Ship Internationally &rarr;</a>
-              <% else %>
-                <div class="ks-hint-box">Domestic (US) · verify stock, then buy the label.</div>
-                <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
-                  <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
-                  <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
-                  <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
-                  <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
-                  <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
-                  <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country] %>">
-                  <input type="hidden" name="shipping_phone" value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
-                  <input type="hidden" name="email" value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                  <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
-                </form>
-                <div class="ks-tracking-box" style="display:none;">
-                  <span class="ks-tracking-label">TRK</span>
-                  <span class="ks-tracking-code"></span>
-                </div>
-                <div class="ks-ship-btn-row" style="display:none;">
-                  <button type="button" class="ks-btn-primary print-label-btn" data-label-url="">Print Shipping Label</button>
-                  <a class="ks-btn-outline label-link" href="#" target="_blank">View</a>
-                </div>
-              <% end %>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  <% end %>
-</div>
+        <% end %>
+  </div>
 
-<div class="ks-footer">
-  <span>Synced from Tindie</span>
-  <span class="ks-footer-mono"><%= orders.length %> unshipped orders</span>
-</div>
+  <div class="ks-footer">
+    <span>Synced from Tindie</span>
+    <span class="ks-footer-mono">
+      <%= orders.length %> unshipped orders
+    </span>
+  </div>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.ks-row').forEach(function (row) {
-      row.addEventListener('click', function () {
-        var target = document.getElementById(row.dataset.target);
-        var expanded = row.classList.toggle('ks-row-expanded');
-        target.style.display = expanded ? 'block' : 'none';
-      });
-    });
-
-    document.querySelectorAll('.buy-label-form').forEach(function (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        var box = form.closest('.ks-detail-box');
-        var trackingBox = box.querySelector('.ks-tracking-box');
-        var trackingCodeEl = box.querySelector('.ks-tracking-code');
-        var btnRow = box.querySelector('.ks-ship-btn-row');
-        var printBtn = box.querySelector('.print-label-btn');
-        var labelLink = box.querySelector('.label-link');
-
-        fetch(form.action, {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-          .then(function (response) { return response.json(); })
-          .then(function (data) {
-            if (data.tracking_code) {
-              trackingCodeEl.textContent = data.tracking_code;
-              trackingBox.style.display = 'flex';
-              form.style.display = 'none';
-            }
-            if (data.label_url) {
-              printBtn.setAttribute('data-label-url', data.label_url);
-              labelLink.href = data.label_url;
-              btnRow.style.display = 'flex';
-            }
-          })
-          .catch(function (error) { console.error('Error:', error); });
-      });
-    });
-
-    document.addEventListener('click', function (e) {
-      var btn = e.target.closest('.print-label-btn');
-      if (!btn) return;
-      e.stopPropagation();
-      var labelUrl = btn.getAttribute('data-label-url');
-      if (!labelUrl) return;
-
-      fetch('/print_label', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label_url: labelUrl })
-      })
-        .then(function (response) { return response.json(); })
-        .catch(function (error) { console.error('Error:', error); });
-    });
-
-    // Theme toggle
-    var root = document.documentElement;
-    var stored = localStorage.getItem('packpoint-theme');
-    if (stored) root.dataset.theme = stored;
-
-    function updateThemeButtons() {
-      var mode = root.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      document.querySelectorAll('.ks-theme-btn').forEach(function (btn) {
-        btn.classList.toggle('ks-theme-btn-active', btn.dataset.themeChoice === mode);
+  <script>
+    // Reads the response as text first so a non-JSON body (proxy timeout page,
+    // crashed server, etc.) surfaces a clear error instead of a cryptic
+    // "JSON.parse: unexpected character" from the native parser.
+    function parseJsonResponse(response) {
+      return response.text().then(function (text) {
+        var data;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (e) {
+          throw new Error('Server returned an unexpected response (HTTP ' + response.status + '). It may have timed out or crashed.');
+        }
+        return { ok: response.ok, data: data };
       });
     }
 
-    document.querySelectorAll('.ks-theme-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        root.dataset.theme = btn.dataset.themeChoice;
-        localStorage.setItem('packpoint-theme', btn.dataset.themeChoice);
-        updateThemeButtons();
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.ks-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          var target = document.getElementById(row.dataset.target);
+          var expanded = row.classList.toggle('ks-row-expanded');
+          target.style.display = expanded ? 'block' : 'none';
+        });
       });
-    });
 
-    updateThemeButtons();
-  });
-</script>
+      document.querySelectorAll('.buy-label-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          var box = form.closest('.ks-detail-box');
+          var trackingBox = box.querySelector('.ks-tracking-box');
+          var trackingCodeEl = box.querySelector('.ks-tracking-code');
+          var btnRow = box.querySelector('.ks-ship-btn-row');
+          var printBtn = box.querySelector('.print-label-btn');
+          var labelLink = box.querySelector('.label-link');
+          var errorBox = box.querySelector('.ks-form-error');
+          var submitBtn = form.querySelector('button[type="submit"]');
+          var originalLabel = submitBtn.textContent;
+
+          errorBox.style.display = 'none';
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Buying Label…';
+
+          fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+            .then(parseJsonResponse)
+            .then(function (result) {
+              var data = result.data;
+              if (!result.ok || data.success === false) {
+                throw new Error(data.message || 'Failed to buy shipping label');
+              }
+              if (data.tracking_code) {
+                trackingCodeEl.textContent = data.tracking_code;
+                trackingBox.style.display = 'flex';
+                form.style.display = 'none';
+              }
+              if (data.label_url) {
+                printBtn.setAttribute('data-label-url', data.label_url);
+                labelLink.href = data.label_url;
+                btnRow.style.display = 'flex';
+              }
+            })
+            .catch(function (error) {
+              console.error('Error:', error);
+              errorBox.textContent = error.message;
+              errorBox.style.display = 'block';
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalLabel;
+            });
+        });
+      });
+
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.print-label-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        var labelUrl = btn.getAttribute('data-label-url');
+        if (!labelUrl) return;
+
+        var statusBox = btn.closest('.ks-detail-box').querySelector('.ks-print-status');
+        var originalLabel = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Printing…';
+        statusBox.className = 'ks-print-status';
+        statusBox.style.display = 'none';
+
+        fetch('/print_label', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label_url: labelUrl })
+        })
+          .then(parseJsonResponse)
+          .then(function (result) {
+            var data = result.data;
+            statusBox.textContent = data.message || (data.success ? 'Print job sent' : 'Print failed');
+            statusBox.classList.add(data.success ? 'ks-print-status-ok' : 'ks-print-status-error');
+            statusBox.style.display = 'block';
+          })
+          .catch(function (error) {
+            console.error('Error:', error);
+            statusBox.textContent = 'Print failed: ' + error.message;
+            statusBox.classList.add('ks-print-status-error');
+            statusBox.style.display = 'block';
+          })
+          .finally(function () {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+          });
+      });
+
+      // Theme toggle
+      var root = document.documentElement;
+      var stored = localStorage.getItem('packpoint-theme');
+      if (stored) root.dataset.theme = stored;
+
+      function updateThemeButtons() {
+        var mode = root.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.querySelectorAll('.ks-theme-btn').forEach(function (btn) {
+          btn.classList.toggle('ks-theme-btn-active', btn.dataset.themeChoice === mode);
+        });
+      }
+
+      document.querySelectorAll('.ks-theme-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          root.dataset.theme = btn.dataset.themeChoice;
+          localStorage.setItem('packpoint-theme', btn.dataset.themeChoice);
+          updateThemeButtons();
+        });
+      });
+
+      updateThemeButtons();
+    });
+  </script>

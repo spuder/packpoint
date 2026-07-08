@@ -30,6 +30,8 @@ module ShippingApp
       'SE' => '🇸🇪',  # Sweden
     }.freeze
 
+    CUPS_TIMEOUT_SECONDS = 8
+
     configure do
       Environment.setup
       
@@ -46,7 +48,9 @@ module ShippingApp
 
       # Debug: List all available printer names at startup (after Environment.setup)
       begin
-        printer_names = CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+        printer_names = Timeout.timeout(CUPS_TIMEOUT_SECONDS) do
+          CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+        end
         puts "Available printer names at startup: #{printer_names.inspect}"
       rescue => e
         puts "Error getting printer names at startup: #{e.class} - #{e.message}"
@@ -99,7 +103,9 @@ module ShippingApp
       printer_available = false
       printer_error = nil
       begin
-        available_printers = CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+        available_printers = Timeout.timeout(CUPS_TIMEOUT_SECONDS) do
+          CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+        end
         printer_available = available_printers.include?('PM-241-BT')
         puts "Printer check: PM-241-BT #{printer_available ? 'available' : 'not found'} in #{available_printers.inspect}"
       rescue => e
@@ -134,18 +140,29 @@ module ShippingApp
         'email' => params[:email].to_s.empty? ? nil : params[:email]
       }
       puts "Order Data: #{order_data.inspect}"
-      
-      result = ShippingApp::ShippingService.new.create_label(order_number, order_data)
-      
-      # Store the label information in the session
-      session[:orders] ||= {}
-      session[:orders][order_number] = {
-        tracking_code: result[:tracking_code],
-        label_url: result[:label_url]
-      }
-      
+
       content_type :json
-      result.to_json
+      begin
+        result = ShippingApp::ShippingService.new.create_label(order_number, order_data)
+
+        # Store the label information in the session
+        session[:orders] ||= {}
+        session[:orders][order_number] = {
+          tracking_code: result[:tracking_code],
+          label_url: result[:label_url]
+        }
+
+        { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }.to_json
+      rescue EasyPost::Errors::EasyPostError => e
+        puts "EasyPost error buying label for #{order_number}: #{e.class} - #{e.message}"
+        status 422
+        { success: false, message: e.message }.to_json
+      rescue => e
+        puts "ERROR in buy_label: #{e.class} - #{e.message}"
+        puts e.backtrace.join("\n")
+        status 500
+        { success: false, message: e.message }.to_json
+      end
     end
 
 
@@ -182,41 +199,45 @@ module ShippingApp
         
         begin
           # Verify printer is available using cupsffi (this works)
-          available_printers = CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+          available_printers = Timeout.timeout(CUPS_TIMEOUT_SECONDS) do
+            CupsPrinter.get_all_printer_names(:hostname => ENV['CUPS_HOST'], :port => 631)
+          end
           unless available_printers.include?('PM-241-BT')
             raise "PM-241-BT not found in available printers: #{available_printers.inspect}"
           end
           puts "SUCCESS: Confirmed PM-241-BT is available on remote server"
-          
+
           # Try cupsffi first (since you prefer the library approach)
           puts "Attempting print via cupsffi library..."
           begin
-            printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
-            puts "SUCCESS: Created printer instance with cupsffi"
-            
-            job = printer.print_file(cached_file)
-            puts "SUCCESS: cupsffi printing worked!"
-            
-            begin
-              status = job.status
-              puts "Print job status: #{status}"
-            rescue RuntimeError => e
-              puts "Error getting job status: #{e.class} - #{e.message}"
-              status = "submitted via cupsffi"
+            job_status = Timeout.timeout(CUPS_TIMEOUT_SECONDS) do
+              printer = CupsPrinter.new("PM-241-BT", :hostname => ENV['CUPS_HOST'], :port => 631)
+              puts "SUCCESS: Created printer instance with cupsffi"
+
+              job = printer.print_file(cached_file)
+              puts "SUCCESS: cupsffi printing worked!"
+
+              begin
+                job.status
+              rescue RuntimeError => e
+                puts "Error getting job status: #{e.class} - #{e.message}"
+                "submitted via cupsffi"
+              end
             end
-            
+            status = job_status
+
           rescue RuntimeError => cupsffi_error
             puts "cupsffi printing failed: #{cupsffi_error.message}"
             puts "Falling back to native CUPS lp command..."
-            
+
             # Fallback to native CUPS command with explicit server
             cups_server = "#{ENV['CUPS_HOST']}:631"
             lp_command = "lp -h #{cups_server} -d PM-241-BT #{cached_file}"
             puts "Running: #{lp_command}"
-            
-            result = `#{lp_command} 2>&1`
+
+            result = Timeout.timeout(CUPS_TIMEOUT_SECONDS) { `#{lp_command} 2>&1` }
             exit_code = $?.exitstatus
-            
+
             if exit_code == 0
               puts "SUCCESS: Native lp command worked: #{result.strip}"
               status = "submitted via lp command"
@@ -224,7 +245,7 @@ module ShippingApp
               raise "Both cupsffi and lp command failed. lp error: #{result}"
             end
           end
-          
+
         rescue => e
           puts "Failed to print: #{e.class} - #{e.message}"
           raise

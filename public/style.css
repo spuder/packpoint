@@ -654,6 +654,30 @@ a:hover {
   width: 100%;
 }
 
+.ks-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.ks-form-error {
+  font-size: 13px;
+  color: #b3261e;
+  margin-top: 8px;
+}
+
+.ks-print-status {
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.ks-print-status-ok {
+  color: var(--ready-fg);
+}
+
+.ks-print-status-error {
+  color: #b3261e;
+}
+
 .ks-btn-outline {
   padding: 11px 16px;
   border: 1.5px solid var(--border);

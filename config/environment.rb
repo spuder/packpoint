@@ -6,6 +6,7 @@ require 'easypost'
 require 'cupsffi'
 require 'open-uri'
 require 'fileutils'
+require 'timeout'
 
 Dir['./lib/**/*.rb'].each { |file| require file }
 
