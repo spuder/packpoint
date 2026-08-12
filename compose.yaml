@@ -8,20 +8,28 @@ services:
       dockerfile: Dockerfile
     container_name: packpoint
     restart: unless-stopped
-    # Pulls in every var from .env (TINDIE_*, EASYPOST_*, STRIPE_STORE_*_*,
-    # CUPS_HOST, ...) so new stores/vars don't need a matching line added
-    # here. `environment:` below still wins over env_file for any key it
-    # also sets, which is how the dev-mode values in .env get overridden
-    # for this production container.
-    env_file:
-      - .env
+    # Dockhand deploys this stack with `--env-file .env.dockhand` (its own
+    # generated secrets file - see com.docker.compose.project.environment_file
+    # on the running container), which only feeds ${VAR} substitution below.
+    # There is no plain .env on the deploy host, so `env_file: - .env` (a
+    # different mechanism - loading a file's contents straight into the
+    # container) fails deploy. Every var the app needs has to be listed
+    # here explicitly and also registered as a Dockhand secret.
     environment:
       - TZ=America/Denver
+      - TINDIE_USERNAME=${TINDIE_USERNAME}
+      - TINDIE_API_KEY=${TINDIE_API_KEY}
+      - TINDIE_EASYPOST_FROM_ADDRESS=${TINDIE_EASYPOST_FROM_ADDRESS}
+      - EASYPOST_API_KEY=${EASYPOST_API_KEY}
+      - STRIPE_STORE_1_NAME=${STRIPE_STORE_1_NAME}
+      - STRIPE_STORE_1_SECRET_KEY=${STRIPE_STORE_1_SECRET_KEY}
+      - STRIPE_STORE_1_EASYPOST_FROM_ADDRESS=${STRIPE_STORE_1_EASYPOST_FROM_ADDRESS}
       - RACK_ENV=production
       - APP_ENV=production
       - DEPLOY_ENV=production
       - RAILS_ENV=production
       - ALLOWED_HOSTS=packpoint.snowy-vibes.ts.net,packpoint.local,localhost
+      - CUPS_HOST=${CUPS_HOST}
     # ports:
     #   - "9292:9292"
     labels:
