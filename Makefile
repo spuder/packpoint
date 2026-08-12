@@ -1,6 +1,4 @@
-.PHONY: build run dev all
+.PHONY: dev
 
 dev:
 	bundle exec rackup --host 0.0.0.0 --port 9292
-
-all: build run

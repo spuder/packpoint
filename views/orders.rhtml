@@ -32,16 +32,26 @@
   </div>
 </header>
 
+<% if stripe_warnings&.any? %>
+  <div class="ks-warning-banner">
+    <% stripe_warnings.each do |warning| %>
+      <div class="ks-warning-row">⚠️ <%= warning %></div>
+      <% end %>
+  </div>
+  <% end %>
+
 <% aging_count=orders.count { |order| order_aging?(order.date) } %>
   <div class="ks-subbar">
     <div class="ks-store-tabs">
-      <div class="ks-tab">
-        <span class="ks-tab-dot"></span>
-        <span>Tindie.com</span>
-        <span class="ks-tab-count">
-          <%= orders.count %>
-        </span>
-      </div>
+      <% stores.each do |store| %>
+        <div class="ks-tab">
+          <span class="ks-tab-dot"></span>
+          <span><%= store[:name] %></span>
+          <span class="ks-tab-count">
+            <%= store[:count] %>
+          </span>
+        </div>
+        <% end %>
     </div>
 
     <div class="ks-subbar-right">
@@ -56,7 +66,16 @@
           <%= aging_count %>
         </span> aging &gt; 48h
       </div>
+      <button type="button" class="ks-btn-outline" id="archive-toggle">Archive ▸</button>
     </div>
+  </div>
+
+  <div id="archive-section" style="display:none;">
+    <div class="ks-archive-header">
+      <span>Shipped in the last <%= archive_days %> days</span>
+      <button type="button" class="ks-btn-ghost" id="archive-refresh" style="display:none;">Refresh</button>
+    </div>
+    <div id="archive-content"></div>
   </div>
 
   <div class="ks-table">
@@ -71,7 +90,7 @@
       <div class="ks-col-right">Label</div>
     </div>
 
-    <% orders.sort_by(&:date).each do |order| %>
+    <% orders.sort_by { |order| order.date.to_time }.each do |order| %>
       <% status = order_status(order); label = purchased_labels[order.order_number.to_s]; total_qty = order.products.sum(&:qty); total_price = order.products.sum { |p| p.price.to_f } %>
         <div class="ks-row-wrap">
           <div class="ks-row" data-target="details-<%= order.order_number %>">
@@ -85,10 +104,10 @@
               </div>
             </div>
             <div>
-              <span class="ks-store-badge"><span class="ks-store-dot"></span>Tindie</span>
+              <span class="ks-store-badge"><span class="ks-store-dot"></span><%= order.store_display_name %></span>
             </div>
-            <div class="ks-order-no">
-              <%= order.order_number %>
+            <div class="ks-order-no" title="<%= order.order_number %>">
+              <%= display_order_number(order) %>
             </div>
             <div class="ks-age <%= 'ks-age-hot' if order_aging?(order.date) %>">
               <%= order_age(order.date) %>
@@ -122,8 +141,8 @@
               <div class="ks-detail-box">
                 <div class="ks-detail-box-head">
                   <div class="ks-detail-box-title">Items</div>
-                  <div class="ks-detail-order-no">
-                    <%= order.order_number %>
+                  <div class="ks-detail-order-no" title="<%= order.order_number %>">
+                    <%= display_order_number(order) %>
                   </div>
                 </div>
                 <% order.products.each do |item| %>
@@ -142,11 +161,17 @@
                   </div>
                   <% end %>
                     <div class="ks-item-actions">
-                      <a class="ks-btn-outline" href="https://www.tindie.com/orders/print/<%= order.order_number %>"
-                        onclick="window.open(this.href, '_blank'); return false;">Print Packing Slip</a>
-                      <button type="button" class="ks-btn-ghost"
-                        onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
-                        Slip &rarr;</button>
+                      <% if order.store_type=='tindie' %>
+                        <a class="ks-btn-outline" href="https://www.tindie.com/orders/print/<%= order.order_number %>"
+                          onclick="window.open(this.href, '_blank'); return false;">Print Packing Slip</a>
+                        <button type="button" class="ks-btn-ghost"
+                          onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
+                          Slip &rarr;</button>
+                        <% else %>
+                          <button type="button" class="ks-btn-ghost"
+                            onclick="window.open('https://dashboard.stripe.com/payments/<%= order.payment_intent_id %>', '_blank')">View
+                            in Stripe &rarr;</button>
+                          <% end %>
                     </div>
               </div>
 
@@ -194,6 +219,8 @@
                       <% else %>
                         <div class="ks-hint-box">Domestic (US)</div>
                         <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
+                          <input type="hidden" name="store_type" value="<%= order.store_type %>">
+                          <input type="hidden" name="store_key" value="<%= order.store_key %>">
                           <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
                           <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
                           <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
@@ -207,6 +234,7 @@
                           <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
                         </form>
                         <div class="ks-form-error" style="display:none;"></div>
+                        <div class="ks-form-warning" style="display:none;"></div>
                         <div class="ks-tracking-box" style="display:none;">
                           <span class="ks-tracking-label">TRK</span>
                           <span class="ks-tracking-code"></span>
@@ -227,7 +255,7 @@
   </div>
 
   <div class="ks-footer">
-    <span>Synced from Tindie</span>
+    <span>Synced from <%= stores.map { |s| s[:name] }.join(', ') %></span>
     <span class="ks-footer-mono">
       <%= orders.length %> unshipped orders
     </span>
@@ -270,10 +298,12 @@
           var printBtn = box.querySelector('.print-label-btn');
           var labelLink = box.querySelector('.label-link');
           var errorBox = box.querySelector('.ks-form-error');
+          var warningBox = box.querySelector('.ks-form-warning');
           var submitBtn = form.querySelector('button[type="submit"]');
           var originalLabel = submitBtn.textContent;
 
           errorBox.style.display = 'none';
+          warningBox.style.display = 'none';
           submitBtn.disabled = true;
           submitBtn.textContent = 'Buying Label…';
 
@@ -297,6 +327,10 @@
                 printBtn.setAttribute('data-label-url', data.label_url);
                 labelLink.href = data.label_url;
                 btnRow.style.display = 'flex';
+              }
+              if (data.warning) {
+                warningBox.textContent = data.warning;
+                warningBox.style.display = 'block';
               }
             })
             .catch(function (error) {
@@ -346,6 +380,41 @@
             btn.textContent = originalLabel;
           });
       });
+
+      // Archive tab: fetched lazily on first open, then cached client-side
+      // so re-toggling doesn't re-fetch. "Refresh" forces a re-fetch.
+      var archiveToggle = document.getElementById('archive-toggle');
+      var archiveSection = document.getElementById('archive-section');
+      var archiveContent = document.getElementById('archive-content');
+      var archiveRefresh = document.getElementById('archive-refresh');
+      var archiveLoaded = false;
+
+      function loadArchive() {
+        archiveContent.innerHTML = '<div class="ks-hint-box">Loading…</div>';
+        fetch('/orders/archive', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.text();
+          })
+          .then(function (html) {
+            archiveContent.innerHTML = html;
+            archiveLoaded = true;
+            archiveRefresh.style.display = 'inline-block';
+          })
+          .catch(function (error) {
+            console.error('Error loading archive:', error);
+            archiveContent.innerHTML = '<div class="ks-form-error">Failed to load archive: ' + error.message + '</div>';
+          });
+      }
+
+      archiveToggle.addEventListener('click', function () {
+        var expanded = archiveSection.style.display !== 'none';
+        archiveSection.style.display = expanded ? 'none' : 'block';
+        archiveToggle.textContent = expanded ? 'Archive ▸' : 'Archive ▾';
+        if (!expanded && !archiveLoaded) loadArchive();
+      });
+
+      archiveRefresh.addEventListener('click', loadArchive);
 
       // Theme toggle
       var root = document.documentElement;

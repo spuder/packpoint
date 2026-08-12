@@ -32,18 +32,39 @@ module ShippingApp
 
     CUPS_TIMEOUT_SECONDS = 8
 
+    # How far back the (lazily-loaded) archive tab looks for shipped
+    # orders. Kept bounded on purpose - Stripe can filter this server-side
+    # via `created`, but Tindie's gem can't, so this also caps how much of
+    # Tindie's shipped history gets pulled and filtered client-side.
+    ARCHIVE_WINDOW_DAYS = 30
+
     configure do
       Environment.setup
-      
+
       # Disable all Rack protection to allow external connections
       set :protection, false
-      
+
       # Allow any host in development
       if Environment.development?
         set :bind, '0.0.0.0'
         set :port, 9292
         # Allow any host by setting permitted_hosts to empty array
         set :host_authorization, { permitted_hosts: [] }
+      end
+
+      # Stripe support is optional and can span multiple stores/accounts -
+      # see StripeStoreConfig for the STRIPE_STORE_*_* env var format.
+      set :stripe_stores, StripeStoreConfig.stores
+      if settings.stripe_stores.any?
+        puts "Configured Stripe stores: #{settings.stripe_stores.map(&:name).join(', ')}"
+        settings.stripe_stores.each do |store|
+          if store.from_address.to_s.empty?
+            puts "WARNING: STRIPE_STORE_#{store.key.upcase}_EASYPOST_FROM_ADDRESS is not set - " \
+                 "buying a label for '#{store.name}' orders will fail"
+          end
+        end
+      else
+        puts "No Stripe stores configured (STRIPE_STORE_<id>_SECRET_KEY not set)"
       end
 
       # Debug: List all available printer names at startup (after Environment.setup)
@@ -88,17 +109,146 @@ module ShippingApp
         label = purchased_labels[order.order_number.to_s]
         label && label[:tracking_code] && label[:label_url] ? 'ready' : 'need'
       end
+
+      # Tindie order numbers are already short; Stripe's are long session
+      # ids, so those provide their own shortened form to display instead.
+      def display_order_number(order)
+        order.respond_to?(:short_order_number) ? order.short_order_number : order.order_number.to_s
+      end
+
+      # Pulls together unshipped orders from Tindie and every configured
+      # Stripe store into one flat list, each wrapped in a StoreOrder so the
+      # view can render a store badge and buy_label knows where to route
+      # the "mark as shipped" call. Any Stripe store that fails to fetch
+      # (bad key, missing permissions, etc.) is recorded in @stripe_warnings
+      # instead of just being logged, so the /orders page actually shows
+      # that something's wrong rather than quietly rendering as if that
+      # store simply has no orders.
+      def fetch_all_orders
+        @stripe_warnings = []
+
+        tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
+        tindie_orders = with_vcr { tindie_api.get_all_orders(false) }
+        orders = tindie_orders.map do |order|
+          ShippingApp::StoreOrder.new(order, store_type: 'tindie', store_key: 'tindie', store_display_name: 'Tindie')
+        end
+
+        settings.stripe_stores.each { |store| orders.concat(fetch_stripe_orders(store, shipped: false)) }
+        orders
+      end
+
+      # Same idea as fetch_all_orders, but for the (lazily-loaded) archive
+      # tab: shipped orders from the last ARCHIVE_WINDOW_DAYS days only.
+      # Stripe supports filtering this server-side (created[gte]); Tindie's
+      # gem doesn't expose a date filter, so that side is fetched in full
+      # and filtered client-side - fine for a bounded, on-demand view, but
+      # worth revisiting if a store's shipped history gets very large.
+      def fetch_archived_orders
+        @stripe_warnings ||= []
+        cutoff = Time.now - (ARCHIVE_WINDOW_DAYS * 86400)
+
+        tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
+        tindie_orders = with_vcr { tindie_api.get_all_orders(true) }
+        tindie_orders = tindie_orders.select { |order| order.date.to_time >= cutoff }
+        orders = tindie_orders.map do |order|
+          ShippingApp::StoreOrder.new(order, store_type: 'tindie', store_key: 'tindie', store_display_name: 'Tindie')
+        end
+
+        settings.stripe_stores.each do |store|
+          orders.concat(fetch_stripe_orders(store, shipped: true, created_after: cutoff))
+        end
+        orders
+      end
+
+      # Fetches + wraps one Stripe store's orders, recording (not raising)
+      # any Stripe::StripeError into @stripe_warnings - shared by both
+      # fetch_all_orders and fetch_archived_orders.
+      def fetch_stripe_orders(store, shipped:, created_after: nil)
+        stripe_orders = ShippingApp::StripeOrdersAPI.new(store.key, store.name, store.secret_key)
+                         .get_all_orders(shipped, created_after: created_after)
+        stripe_orders.map do |order|
+          ShippingApp::StoreOrder.new(order, store_type: 'stripe', store_key: store.key, store_display_name: store.name)
+        end
+      rescue Stripe::StripeError => e
+        warning = ShippingApp::StripeErrorFormatter.describe(store.name, e)
+        puts "WARNING: #{warning}"
+        (@stripe_warnings ||= []) << warning
+        []
+      end
+
+      # One tab per store (even Stripe stores with zero unshipped orders
+      # right now), used to render the store tab bar.
+      def store_tabs(orders)
+        tabs = [{ key: 'tindie', name: 'Tindie', count: orders.count { |o| o.store_type == 'tindie' } }]
+        settings.stripe_stores.each do |store|
+          tabs << {
+            key: store.key,
+            name: store.name,
+            count: orders.count { |o| o.store_type == 'stripe' && o.store_key == store.key }
+          }
+        end
+        tabs
+      end
+
+      def find_stripe_store(store_key)
+        settings.stripe_stores.find { |store| store.key == store_key }
+      end
+
+      # Each store ships from its own return address, so a Stripe store's
+      # packages don't go out under Tindie's address (or vice versa). See
+      # TINDIE_EASYPOST_FROM_ADDRESS / STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS
+      # in .env.sample.
+      def find_from_address(store_type, store_key)
+        if store_type == 'stripe'
+          store = find_stripe_store(store_key)
+          raise "Cannot buy label: unknown store_key '#{store_key}'" unless store
+          raise "Cannot buy label: no EASYPOST_FROM_ADDRESS configured for Stripe store '#{store_key}'" if store.from_address.to_s.empty?
+
+          store.from_address
+        else
+          from_address = ENV['TINDIE_EASYPOST_FROM_ADDRESS'].to_s
+          raise 'Cannot buy label: TINDIE_EASYPOST_FROM_ADDRESS is not configured' if from_address.empty?
+
+          from_address
+        end
+      end
+
+      # Marks a Stripe order as shipped via the Stripe API (Checkout Session
+      # metadata - see ShippingApp::StripeOrdersAPI for why it's the session
+      # and not the PaymentIntent). Buying the label already succeeded by
+      # the time this runs, so a failure here doesn't fail the request -
+      # but it's returned (rather than merely logged) so /buy_label can
+      # surface it to the UI instead of the label appearing to have shipped
+      # fine when Stripe never got updated.
+      def mark_stripe_order_shipped(store_key, session_id, label_result)
+        store = find_stripe_store(store_key)
+        unless store
+          warning = "Cannot mark Stripe order shipped: unknown store_key '#{store_key}'"
+          puts "WARNING: #{warning}"
+          return warning
+        end
+        unless session_id
+          warning = "Cannot mark Stripe order shipped: missing session id"
+          puts "WARNING: #{warning}"
+          return warning
+        end
+
+        ShippingApp::StripeOrdersAPI.new(store.key, store.name, store.secret_key).mark_shipped(
+          session_id,
+          tracking_code: label_result[:tracking_code],
+          label_url: label_result[:label_url]
+        )
+        nil
+      rescue Stripe::StripeError => e
+        warning = ShippingApp::StripeErrorFormatter.describe("marking #{store_key} order shipped", e)
+        puts "WARNING: #{warning}"
+        warning
+      end
     end
 
     get '/orders' do
-      tindie_api = TindieApi::TindieOrdersAPI.new(
-        ENV['TINDIE_USERNAME'],
-        ENV['TINDIE_API_KEY']
-      )
-      
-      unshipped_orders = with_vcr { tindie_api.get_all_orders(false) }
-      # puts unshipped_orders.inspect
-      
+      unshipped_orders = fetch_all_orders
+
       # Check printer availability for UI feedback (don't create instance, just check)
       printer_available = false
       printer_error = nil
@@ -115,20 +265,39 @@ module ShippingApp
       
       erb :orders, locals: {
         orders: unshipped_orders,
+        stores: store_tabs(unshipped_orders),
+        stripe_warnings: @stripe_warnings,
         purchased_labels: purchased_labels,
         username: ENV['TINDIE_USERNAME'],
         api_key: ENV['TINDIE_API_KEY'],
         countries: COUNTRY_FLAGS,
         total_count: unshipped_orders.length,
         printer_available: printer_available,
-        printer_error: printer_error
+        printer_error: printer_error,
+        archive_days: ARCHIVE_WINDOW_DAYS
+      }
+    end
+
+    # Lazily-loaded archive: only fetched when the Archive tab is actually
+    # opened, not on every /orders load. Returns an HTML fragment (no
+    # layout) that the page injects directly.
+    get '/orders/archive' do
+      archived_orders = fetch_archived_orders.sort_by { |order| order.date.to_time }.reverse
+
+      erb :_archived_orders, layout: false, locals: {
+        orders: archived_orders,
+        stripe_warnings: @stripe_warnings,
+        countries: COUNTRY_FLAGS,
+        archive_days: ARCHIVE_WINDOW_DAYS
       }
     end
 
     post '/buy_label/:order_number' do
       order_number = params[:order_number]
-      puts "Buying label for order: #{order_number}"
-      
+      store_type = params[:store_type].to_s.empty? ? 'tindie' : params[:store_type]
+      store_key = params[:store_key]
+      puts "Buying label for order: #{order_number} (store_type=#{store_type})"
+
       order_data = {
         'shipping_name' => params[:shipping_name],
         'shipping_street' => params[:shipping_street],
@@ -143,7 +312,8 @@ module ShippingApp
 
       content_type :json
       begin
-        result = ShippingApp::ShippingService.new.create_label(order_number, order_data)
+        from_address_id = find_from_address(store_type, store_key)
+        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id)
 
         # Store the label information in the session
         session[:orders] ||= {}
@@ -152,7 +322,11 @@ module ShippingApp
           label_url: result[:label_url]
         }
 
-        { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }.to_json
+        stripe_warning = mark_stripe_order_shipped(store_key, order_number, result) if store_type == 'stripe'
+
+        response_body = { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }
+        response_body[:warning] = "Label bought, but Stripe wasn't updated: #{stripe_warning}" if stripe_warning
+        response_body.to_json
       rescue EasyPost::Errors::EasyPostError => e
         puts "EasyPost error buying label for #{order_number}: #{e.class} - #{e.message}"
         status 422

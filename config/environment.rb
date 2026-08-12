@@ -3,10 +3,12 @@ require 'sinatra/base'
 require 'tindie_api'
 require 'dotenv'
 require 'easypost'
+require 'stripe'
 require 'cupsffi'
 require 'open-uri'
 require 'fileutils'
 require 'timeout'
+require 'time'
 
 Dir['./lib/**/*.rb'].each { |file| require file }
 

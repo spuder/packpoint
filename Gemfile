@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 
 gem 'dotenv'
 gem 'easypost', '~> 6.4.1'
+gem 'stripe', '~> 19.5.0'
 gem 'sinatra', '~> 4.1.1'
 gem 'vcr', '~> 6.3.1'
 gem 'webmock'
