@@ -15,9 +15,15 @@ module ShippingApp
   # address_dict, address_str, recipient_email, recipient_phone) - that way
   # views/orders.rhtml can treat orders from either source identically.
   #
-  # Stripe has no built-in "shipped" status, so fulfillment is tracked the
-  # way Stripe's own docs recommend: a `fulfillment_status` metadata key on
-  # the PaymentIntent (https://docs.stripe.com/metadata/use-cases).
+  # Stripe has no built-in "shipped" status, so fulfillment is tracked via
+  # a `fulfillment_status` metadata key - Stripe's own docs (see
+  # https://docs.stripe.com/metadata/use-cases) put this on the
+  # PaymentIntent, but it lives on the Checkout Session's own metadata here
+  # instead: a restricted API key scoped to "Checkout Sessions Write" can
+  # write there even when Stripe's API refuses a direct PaymentIntent write
+  # with a misleading "secret_key_required" error - the PaymentIntent write
+  # apparently isn't reachable through that scope at all, regardless of
+  # what permission Stripe's own error message claims would fix it.
   class StripeOrder
     attr_reader :json_parsed, :date, :date_shipped, :products, :shipped, :order_number,
                 :recipient_email, :recipient_phone, :address_dict, :address_str,
@@ -34,9 +40,12 @@ module ShippingApp
       @date = Time.at(session.created)
       @products = Array(session.line_items&.data).map { |item| StripeProduct.new(item) }
 
+      # Kept only for the "View in Stripe" dashboard link - fulfillment
+      # metadata lives on the session itself (see class comment above).
       payment_intent = session.payment_intent
       @payment_intent_id = payment_intent.respond_to?(:id) ? payment_intent.id : payment_intent
-      metadata = payment_intent.respond_to?(:metadata) ? payment_intent.metadata : {}
+
+      metadata = session.metadata || {}
       @shipped = metadata['fulfillment_status'] == 'shipped'
       @tracking_code = metadata['tracking_code']
       @tracking_url = metadata['tracking_url']
@@ -112,9 +121,12 @@ module ShippingApp
 
     # Mirrors TindieApi::TindieOrdersAPI#get_all_orders. Only returns paid
     # sessions that collected a shipping address (digital-only purchases
-    # have nothing for PackPoint to ship).
-    def get_all_orders(shipped = false)
-      sessions = fetch_paid_sessions
+    # have nothing for PackPoint to ship). Pass created_after (a Time) to
+    # bound the search server-side - used by the archive view so it doesn't
+    # have to page through a store's entire order history to find recently
+    # shipped ones.
+    def get_all_orders(shipped = false, created_after: nil)
+      sessions = fetch_paid_sessions(created_after: created_after)
       orders = sessions.map { |session| StripeOrder.new(session) }
 
       with_address = orders.select(&:has_shipping_address?)
@@ -129,8 +141,11 @@ module ShippingApp
       result
     end
 
-    def mark_shipped(payment_intent_id, tracking_code:, label_url: nil, tracking_url: nil, carrier: nil)
-      return unless payment_intent_id
+    # session_id here is the Checkout Session id (StripeOrder#order_number)
+    # - see the StripeOrder class comment for why this writes to the
+    # session's metadata rather than the PaymentIntent's.
+    def mark_shipped(session_id, tracking_code:, label_url: nil, tracking_url: nil, carrier: nil)
+      return unless session_id
 
       metadata = {
         fulfillment_status: 'shipped',
@@ -141,12 +156,12 @@ module ShippingApp
         shipped_at: Time.now.utc.iso8601
       }.compact
 
-      @client.v1.payment_intents.update(payment_intent_id, { metadata: metadata })
+      @client.v1.checkout.sessions.update(session_id, { metadata: metadata })
     end
 
     private
 
-    def fetch_paid_sessions
+    def fetch_paid_sessions(created_after: nil)
       results = []
       total_complete = 0
       starting_after = nil
@@ -157,6 +172,7 @@ module ShippingApp
           limit: PAGE_SIZE,
           expand: ['data.line_items', 'data.payment_intent']
         }
+        params[:created] = { gte: created_after.to_i } if created_after
         params[:starting_after] = starting_after if starting_after
 
         page = @client.v1.checkout.sessions.list(params)

@@ -4,8 +4,8 @@ module ShippingApp
         @client = create_client
       end
 
-      def create_label(order_number, order_data)
-        shipment = create_shipment(order_number, order_data)
+      def create_label(order_number, order_data, from_address_id)
+        shipment = create_shipment(order_number, order_data, from_address_id)
         buy_shipment(shipment)
       end
 
@@ -14,12 +14,12 @@ module ShippingApp
       def create_client
         EasyPost::Client.new(api_key: ENV['EASYPOST_API_KEY'])
       end
-  
-      def create_shipment(order_number, order_data)
+
+      def create_shipment(order_number, order_data, from_address_id)
         @client.shipment.create(
           reference: order_number,
           to_address: build_to_address(order_data),
-          from_address: retrieve_from_address,
+          from_address: retrieve_from_address(from_address_id),
           parcel: default_parcel
         )
       end
@@ -37,8 +37,8 @@ module ShippingApp
         }
       end
   
-      def retrieve_from_address
-        @client.address.retrieve(ENV['EASYPOST_FROM_ADDRESS'])
+      def retrieve_from_address(from_address_id)
+        @client.address.retrieve(from_address_id)
       end
   
       def default_parcel

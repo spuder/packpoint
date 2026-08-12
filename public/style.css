@@ -264,6 +264,20 @@ a:hover {
   color: var(--accent-fg);
 }
 
+#archive-section {
+  margin-bottom: 20px;
+}
+
+.ks-archive-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .ks-tab-dot {
   width: 8px;
   height: 8px;
@@ -338,6 +352,14 @@ a:hover {
 .ks-row {
   display: grid;
   grid-template-columns: 44px minmax(190px, 2.4fr) 132px 128px 104px minmax(150px, 1.5fr) 148px 158px;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Archive table has no expand chevron column, so one fewer track. */
+.ks-archive-col-header,
+.ks-archive-row {
+  grid-template-columns: minmax(190px, 2.4fr) 132px 128px 104px minmax(150px, 1.5fr) 148px 158px;
   align-items: center;
   gap: 10px;
 }
