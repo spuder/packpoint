@@ -8,20 +8,20 @@ services:
       dockerfile: Dockerfile
     container_name: packpoint
     restart: unless-stopped
-    # env_file:
-    #   - .env
+    # Pulls in every var from .env (TINDIE_*, EASYPOST_*, STRIPE_STORE_*_*,
+    # CUPS_HOST, ...) so new stores/vars don't need a matching line added
+    # here. `environment:` below still wins over env_file for any key it
+    # also sets, which is how the dev-mode values in .env get overridden
+    # for this production container.
+    env_file:
+      - .env
     environment:
       - TZ=America/Denver
-      - TINDIE_USERNAME=${TINDIE_USERNAME}
-      - TINDIE_API_KEY=${TINDIE_API_KEY}
-      - EASYPOST_API_KEY=${EASYPOST_API_KEY}
-      - EASYPOST_FROM_ADDRESS=${EASYPOST_FROM_ADDRESS}
       - RACK_ENV=production
       - APP_ENV=production
       - DEPLOY_ENV=production
       - RAILS_ENV=production
       - ALLOWED_HOSTS=packpoint.snowy-vibes.ts.net,packpoint.local,localhost
-      - CUPS_HOST=${CUPS_HOST} #TODO: is this even needed?
     # ports:
     #   - "9292:9292"
     labels:
