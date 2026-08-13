@@ -1,11 +1,23 @@
 module ShippingApp
     class ShippingService
+      # Openspool orders have always shipped in this box, so it's still the
+      # default when the buy form doesn't supply parcel dimensions (i.e. the
+      # Openspool case, where the UI doesn't ask for them - see orders.rhtml).
+      DEFAULT_PARCEL = {
+        length: 6,
+        width: 4,
+        height: 4,
+        weight: 5
+      }.freeze
+
       def initialize
         @client = create_client
       end
 
-      def create_label(order_number, order_data, from_address_id)
-        shipment = create_shipment(order_number, order_data, from_address_id)
+      # parcel_override, if given, must have :length, :width, :height and
+      # :weight all present - anything else falls back to DEFAULT_PARCEL.
+      def create_label(order_number, order_data, from_address_id, parcel_override = nil)
+        shipment = create_shipment(order_number, order_data, from_address_id, parcel_override)
         buy_shipment(shipment)
       end
 
@@ -15,15 +27,15 @@ module ShippingApp
         EasyPost::Client.new(api_key: ENV['EASYPOST_API_KEY'])
       end
 
-      def create_shipment(order_number, order_data, from_address_id)
+      def create_shipment(order_number, order_data, from_address_id, parcel_override)
         @client.shipment.create(
           reference: order_number,
           to_address: build_to_address(order_data),
           from_address: retrieve_from_address(from_address_id),
-          parcel: default_parcel
+          parcel: build_parcel(parcel_override)
         )
       end
-  
+
       def build_to_address(order_data)
         {
           name: order_data['shipping_name'],
@@ -36,20 +48,18 @@ module ShippingApp
           email: order_data['email']
         }
       end
-  
+
       def retrieve_from_address(from_address_id)
         @client.address.retrieve(from_address_id)
       end
-  
-      def default_parcel
-        {
-          length: 6,
-          width: 4,
-          height: 4,
-          weight: 5
-        }
+
+      def build_parcel(parcel_override)
+        required = %i[length width height weight]
+        return DEFAULT_PARCEL unless parcel_override && required.all? { |key| parcel_override[key].to_s != '' }
+
+        parcel_override.slice(*required)
       end
-  
+
       def buy_shipment(shipment)
         bought_shipment = @client.shipment.buy(shipment.id, rate: shipment.lowest_rate)
         {

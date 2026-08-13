@@ -756,6 +756,33 @@ a:hover {
   font: 700 15px var(--font);
 }
 
+.ks-select-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.ks-dim-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ks-input {
+  width: 100%;
+  height: auto;
+  padding: 11px 12px;
+  margin: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--chip);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 600 13.5px var(--font);
+  min-width: 0;
+}
+
 /* Footer */
 .ks-footer {
   display: flex;

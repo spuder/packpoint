@@ -91,7 +91,7 @@
     </div>
 
     <% orders.sort_by { |order| order.date.to_time }.each do |order| %>
-      <% status = order_status(order); label = purchased_labels[order.order_number.to_s]; total_qty = order.products.sum(&:qty); total_price = order.products.sum { |p| p.price.to_f } %>
+      <% status = order_status(order); label = purchased_labels[order.order_number.to_s]; total_qty = order.products.sum(&:qty); total_price = order.products.sum { |p| p.price.to_f }; is_openspool = order.products.any? { |p| p.name.to_s.downcase.include?('openspool') } %>
         <div class="ks-row-wrap">
           <div class="ks-row" data-target="details-<%= order.order_number %>">
             <div class="ks-chevron">▸</div>
@@ -231,7 +231,22 @@
                             value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
                           <input type="hidden" name="email"
                             value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                          <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
+                          <% if is_openspool %>
+                            <div class="ks-hint-box">Openspool default box: 6&times;4&times;4 in, 5oz</div>
+                            <% else %>
+                              <label class="ks-select-label">Box dimensions (in) &amp; weight (oz)</label>
+                              <div class="ks-dim-row">
+                                <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_length"
+                                  placeholder="L" required>
+                                <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_width"
+                                  placeholder="W" required>
+                                <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_height"
+                                  placeholder="H" required>
+                                <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_weight"
+                                  placeholder="oz" required>
+                              </div>
+                              <% end %>
+                                <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
                         </form>
                         <div class="ks-form-error" style="display:none;"></div>
                         <div class="ks-form-warning" style="display:none;"></div>

@@ -308,12 +308,18 @@ module ShippingApp
         'shipping_phone' => params[:shipping_phone].to_s.empty? ? nil : params[:shipping_phone],
         'email' => params[:email].to_s.empty? ? nil : params[:email]
       }
-      puts "Order Data: #{order_data.inspect}"
+      parcel_override = {
+        length: params[:parcel_length],
+        width: params[:parcel_width],
+        height: params[:parcel_height],
+        weight: params[:parcel_weight]
+      }
+      puts "Order Data: #{order_data.inspect}, Parcel: #{parcel_override.inspect}"
 
       content_type :json
       begin
         from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id)
+        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override)
 
         # Store the label information in the session
         session[:orders] ||= {}
