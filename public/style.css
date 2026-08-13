@@ -659,20 +659,32 @@ a:hover {
 
 .ks-rate-box {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 10px;
+}
+
+.ks-rate-option {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-family: var(--font-head);
   font-size: 13.5px;
   padding: 11px 14px;
   border-radius: var(--chip);
   background: var(--surface-2);
   border: 1px dashed var(--border);
+  cursor: pointer;
+}
+
+.ks-rate-option:has(input:checked) {
+  border-style: solid;
+  border-color: var(--accent);
 }
 
 .ks-rate-box-service {
   color: var(--muted);
+  flex: 1;
 }
 
 .ks-rate-box-price {

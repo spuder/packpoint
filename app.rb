@@ -331,7 +331,7 @@ module ShippingApp
       content_type :json
       begin
         from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.get_rate(order_number, order_data, from_address_id, parcel_override)
+        result = ShippingApp::ShippingService.new.get_rates(order_number, order_data, from_address_id, parcel_override)
         { success: true }.merge(result).to_json
       rescue EasyPost::Errors::EasyPostError => e
         puts "EasyPost error rating label for #{order_number}: #{e.class} - #{e.message}"
@@ -350,7 +350,8 @@ module ShippingApp
       store_type = params[:store_type].to_s.empty? ? 'tindie' : params[:store_type]
       store_key = params[:store_key]
       shipment_id = params[:shipment_id].to_s.empty? ? nil : params[:shipment_id]
-      puts "Buying label for order: #{order_number} (store_type=#{store_type})"
+      carrier = params[:carrier].to_s.empty? ? 'usps' : params[:carrier]
+      puts "Buying label for order: #{order_number} (store_type=#{store_type}, carrier=#{carrier})"
 
       order_data = order_data_from_params
       parcel_override = parcel_override_from_params
@@ -359,7 +360,7 @@ module ShippingApp
       content_type :json
       begin
         from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id)
+        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id, carrier: carrier)
 
         # Store the label information in the session
         session[:orders] ||= {}

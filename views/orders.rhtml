@@ -232,6 +232,7 @@
                           <input type="hidden" name="email"
                             value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
                           <input type="hidden" name="shipment_id" value="">
+                          <input type="hidden" name="carrier" value="usps">
                           <% if is_openspool %>
                             <div class="ks-hint-box">Openspool default box: 6&times;4&times;4 in, 5oz</div>
                             <% else %>
@@ -369,17 +370,23 @@
       // that same shipment - same price, no re-quote. Any edit to the
       // dimension/weight inputs invalidates the stashed quote, since it no
       // longer matches what's typed.
+      var CARRIER_LABELS = { usps: 'USPS', fedex: 'FedEx', ups: 'UPS' };
+
       document.querySelectorAll('.buy-label-form').forEach(function (form) {
         var rateBtn = form.querySelector('.rate-check-btn');
         if (!rateBtn) return;
 
         var rateBox = form.querySelector('.ks-rate-box');
         var shipmentIdField = form.querySelector('input[name="shipment_id"]');
+        var carrierField = form.querySelector('input[name="carrier"]');
         var errorBox = form.closest('.ks-detail-box').querySelector('.ks-form-error');
         var originalLabel = rateBtn.textContent;
+        var radioName = 'carrier_choice_' + Math.random().toString(36).slice(2);
 
         function invalidateRate() {
           shipmentIdField.value = '';
+          carrierField.value = 'usps';
+          rateBox.innerHTML = '';
           rateBox.style.display = 'none';
         }
 
@@ -405,9 +412,28 @@
               if (!result.ok || data.success === false) {
                 throw new Error(data.message || 'Failed to get a price');
               }
+              if (!data.rates || !data.rates.length) {
+                throw new Error('No rates available for this box/weight');
+              }
+
               shipmentIdField.value = data.shipment_id;
-              rateBox.innerHTML = '<span class="ks-rate-box-service">' + data.carrier + ' ' + data.service +
-                '</span><span class="ks-rate-box-price">$' + Number(data.rate).toFixed(2) + '</span>';
+              // Carriers come back USPS-first when available - the first
+              // entry is the default selection either way.
+              carrierField.value = data.rates[0].carrier;
+
+              rateBox.innerHTML = '';
+              data.rates.forEach(function (rate, index) {
+                var option = document.createElement('label');
+                option.className = 'ks-rate-option';
+                option.innerHTML = '<input type="radio" name="' + radioName + '" value="' + rate.carrier + '"' +
+                  (index === 0 ? ' checked' : '') + '>' +
+                  '<span class="ks-rate-box-service">' + (CARRIER_LABELS[rate.carrier] || rate.carrier) + ' ' + rate.service + '</span>' +
+                  '<span class="ks-rate-box-price">$' + Number(rate.rate).toFixed(2) + '</span>';
+                option.querySelector('input').addEventListener('change', function () {
+                  carrierField.value = rate.carrier;
+                });
+                rateBox.appendChild(option);
+              });
               rateBox.style.display = 'flex';
             })
             .catch(function (error) {
