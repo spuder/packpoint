@@ -16,14 +16,13 @@ module ShippingApp
   # views/orders.rhtml can treat orders from either source identically.
   #
   # Stripe has no built-in "shipped" status, so fulfillment is tracked via
-  # a `fulfillment_status` metadata key - Stripe's own docs (see
-  # https://docs.stripe.com/metadata/use-cases) put this on the
-  # PaymentIntent, but it lives on the Checkout Session's own metadata here
-  # instead: a restricted API key scoped to "Checkout Sessions Write" can
-  # write there even when Stripe's API refuses a direct PaymentIntent write
-  # with a misleading "secret_key_required" error - the PaymentIntent write
-  # apparently isn't reachable through that scope at all, regardless of
-  # what permission Stripe's own error message claims would fix it.
+  # a `fulfillment_status` metadata key on the PaymentIntent, per Stripe's
+  # own guidance (https://docs.stripe.com/metadata/use-cases). This used to
+  # live on the Checkout Session instead, because the restricted API key
+  # got a "secret_key_required" error writing to the PaymentIntent - that
+  # turned out to just be a missing "Payment Intents: Write" permission on
+  # the key, not a hard restricted-key wall, so once granted the
+  # PaymentIntent write went through fine.
   class StripeOrder
     attr_reader :json_parsed, :date, :date_shipped, :products, :shipped, :order_number,
                 :recipient_email, :recipient_phone, :address_dict, :address_str,
@@ -40,12 +39,12 @@ module ShippingApp
       @date = Time.at(session.created)
       @products = Array(session.line_items&.data).map { |item| StripeProduct.new(item) }
 
-      # Kept only for the "View in Stripe" dashboard link - fulfillment
-      # metadata lives on the session itself (see class comment above).
+      # fetch_paid_sessions expands payment_intent, so this is the full
+      # object (with metadata) rather than just an id.
       payment_intent = session.payment_intent
       @payment_intent_id = payment_intent.respond_to?(:id) ? payment_intent.id : payment_intent
 
-      metadata = session.metadata || {}
+      metadata = (payment_intent.respond_to?(:metadata) && payment_intent.metadata) || {}
       @shipped = metadata['fulfillment_status'] == 'shipped'
       @tracking_code = metadata['tracking_code']
       @tracking_url = metadata['tracking_url']
@@ -141,11 +140,10 @@ module ShippingApp
       result
     end
 
-    # session_id here is the Checkout Session id (StripeOrder#order_number)
-    # - see the StripeOrder class comment for why this writes to the
-    # session's metadata rather than the PaymentIntent's.
-    def mark_shipped(session_id, tracking_code:, label_url: nil, tracking_url: nil, carrier: nil)
-      return unless session_id
+    # payment_intent_id here is StripeOrder#payment_intent_id, not the
+    # Checkout Session id - see the StripeOrder class comment.
+    def mark_shipped(payment_intent_id, tracking_code:, label_url: nil, tracking_url: nil, carrier: nil)
+      return unless payment_intent_id
 
       metadata = {
         fulfillment_status: 'shipped',
@@ -156,7 +154,7 @@ module ShippingApp
         shipped_at: Time.now.utc.iso8601
       }.compact
 
-      @client.v1.checkout.sessions.update(session_id, { metadata: metadata })
+      @client.v1.payment_intents.update(payment_intent_id, { metadata: metadata })
     end
 
     private

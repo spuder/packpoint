@@ -237,28 +237,28 @@ module ShippingApp
         }
       end
 
-      # Marks a Stripe order as shipped via the Stripe API (Checkout Session
-      # metadata - see ShippingApp::StripeOrdersAPI for why it's the session
-      # and not the PaymentIntent). Buying the label already succeeded by
-      # the time this runs, so a failure here doesn't fail the request -
-      # but it's returned (rather than merely logged) so /buy_label can
-      # surface it to the UI instead of the label appearing to have shipped
-      # fine when Stripe never got updated.
-      def mark_stripe_order_shipped(store_key, session_id, label_result)
+      # Marks a Stripe order as shipped via the Stripe API (PaymentIntent
+      # metadata - see ShippingApp::StripeOrdersAPI for why it's the
+      # PaymentIntent and not the Checkout Session). Buying the label
+      # already succeeded by the time this runs, so a failure here doesn't
+      # fail the request - but it's returned (rather than merely logged) so
+      # callers can surface it to the UI instead of the label appearing to
+      # have shipped fine when Stripe never got updated.
+      def mark_stripe_order_shipped(store_key, payment_intent_id, label_result)
         store = find_stripe_store(store_key)
         unless store
           warning = "Cannot mark Stripe order shipped: unknown store_key '#{store_key}'"
           puts "WARNING: #{warning}"
           return warning
         end
-        unless session_id
-          warning = "Cannot mark Stripe order shipped: missing session id"
+        unless payment_intent_id
+          warning = "Cannot mark Stripe order shipped: missing payment_intent_id"
           puts "WARNING: #{warning}"
           return warning
         end
 
         ShippingApp::StripeOrdersAPI.new(store.key, store.name, store.secret_key).mark_shipped(
-          session_id,
+          payment_intent_id,
           tracking_code: label_result[:tracking_code],
           label_url: label_result[:label_url]
         )
@@ -369,7 +369,7 @@ module ShippingApp
           label_url: result[:label_url]
         }
 
-        stripe_warning = mark_stripe_order_shipped(store_key, order_number, result) if store_type == 'stripe'
+        stripe_warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id], result) if store_type == 'stripe'
 
         response_body = { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }
         response_body[:warning] = "Label bought, but Stripe wasn't updated: #{stripe_warning}" if stripe_warning
@@ -386,6 +386,30 @@ module ShippingApp
       end
     end
 
+    # Marks a Stripe order shipped without buying a label through PackPoint
+    # - for labels bought out-of-band (e.g. directly in EasyPost). Tindie
+    # has no equivalent: its API is read-only, so there's nowhere to write
+    # this to - see ShippingApp::StripeOrdersAPI#mark_shipped.
+    post '/mark_shipped/:order_number' do
+      order_number = params[:order_number]
+      store_key = params[:store_key]
+      tracking_code = params[:tracking_code].to_s.strip
+      puts "Marking order #{order_number} shipped (store_key=#{store_key}, payment_intent_id=#{params[:payment_intent_id]})"
+
+      content_type :json
+      if tracking_code.empty?
+        status 422
+        { success: false, message: 'Tracking code is required' }.to_json
+      else
+        warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id], { tracking_code: tracking_code, label_url: nil })
+        if warning
+          status 422
+          { success: false, message: warning }.to_json
+        else
+          { success: true }.to_json
+        end
+      end
+    end
 
     post '/print_label' do
       content_type :json

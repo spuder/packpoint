@@ -176,7 +176,29 @@
               </div>
 
               <div class="ks-detail-box">
-                <div class="ks-detail-box-title">Ship To</div>
+                <div class="ks-detail-box-head">
+                  <div class="ks-detail-box-title">Ship To</div>
+                  <% if order.store_type == 'stripe' %>
+                    <div class="ks-kebab-wrap">
+                      <button type="button" class="ks-kebab-btn" aria-label="More actions">&#8942;</button>
+                      <div class="ks-kebab-menu" style="display:none;">
+                        <button type="button" class="ks-kebab-item mark-shipped-toggle">Mark as Shipped&hellip;</button>
+                      </div>
+                      <form class="mark-shipped-form" action="/mark_shipped/<%= order.order_number %>" method="post"
+                        style="display:none;">
+                        <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                        <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                        <label class="ks-select-label">Tracking code (bought outside PackPoint)</label>
+                        <input class="ks-input" type="text" name="tracking_code" placeholder="Tracking code" required>
+                        <div class="mark-shipped-status" style="display:none;"></div>
+                        <div class="ks-buy-actions-row">
+                          <button type="button" class="ks-btn-outline mark-shipped-cancel">Cancel</button>
+                          <button type="submit" class="ks-btn-primary">Confirm</button>
+                        </div>
+                      </form>
+                    </div>
+                    <% end %>
+                </div>
                 <div class="ks-ship-address">
                   <div class="ks-ship-name">
                     <%= order.address_dict[:recipient_name] %>
@@ -221,6 +243,8 @@
                         <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
                           <input type="hidden" name="store_type" value="<%= order.store_type %>">
                           <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                          <input type="hidden" name="payment_intent_id"
+                            value="<%= order.payment_intent_id if order.store_type == 'stripe' %>">
                           <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
                           <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
                           <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
@@ -446,6 +470,89 @@
               rateBtn.textContent = originalLabel;
             });
         });
+      });
+
+      // "Mark as Shipped" kebab menu (Stripe orders only) - for labels
+      // bought outside PackPoint (e.g. directly in EasyPost). Writes real
+      // fulfillment metadata to the Checkout Session via /mark_shipped; the
+      // order drops off the unshipped list on next load, so a full reload
+      // on success is simpler than patching the row in place.
+      document.querySelectorAll('.ks-kebab-wrap').forEach(function (wrap) {
+        var kebabBtn = wrap.querySelector('.ks-kebab-btn');
+        var menu = wrap.querySelector('.ks-kebab-menu');
+        var toggleBtn = wrap.querySelector('.mark-shipped-toggle');
+        var form = wrap.querySelector('.mark-shipped-form');
+        var cancelBtn = wrap.querySelector('.mark-shipped-cancel');
+        var statusBox = wrap.querySelector('.mark-shipped-status');
+        var trackingInput = form.querySelector('input[name="tracking_code"]');
+        var submitBtn = form.querySelector('button[type="submit"]');
+
+        function closeAll() {
+          menu.style.display = 'none';
+          form.style.display = 'none';
+        }
+
+        kebabBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var expanded = menu.style.display !== 'none';
+          closeAll();
+          menu.style.display = expanded ? 'none' : 'block';
+        });
+
+        toggleBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          menu.style.display = 'none';
+          form.style.display = 'block';
+          trackingInput.focus();
+        });
+
+        cancelBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          closeAll();
+          trackingInput.value = '';
+          statusBox.style.display = 'none';
+        });
+
+        form.addEventListener('click', function (e) { e.stopPropagation(); });
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          statusBox.className = 'mark-shipped-status';
+          statusBox.style.display = 'none';
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Saving…';
+
+          fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+            .then(parseJsonResponse)
+            .then(function (result) {
+              var data = result.data;
+              if (!result.ok || data.success === false) {
+                throw new Error(data.message || 'Failed to mark as shipped');
+              }
+              statusBox.textContent = 'Marked as shipped. Reloading…';
+              statusBox.classList.add('mark-shipped-status-ok');
+              statusBox.style.display = 'block';
+              setTimeout(function () { window.location.reload(); }, 800);
+            })
+            .catch(function (error) {
+              console.error('Error:', error);
+              statusBox.textContent = error.message;
+              statusBox.classList.add('mark-shipped-status-error');
+              statusBox.style.display = 'block';
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Confirm';
+            });
+        });
+      });
+
+      // Close any open kebab menu/form when clicking elsewhere on the page.
+      document.addEventListener('click', function () {
+        document.querySelectorAll('.ks-kebab-menu').forEach(function (menu) { menu.style.display = 'none'; });
+        document.querySelectorAll('.mark-shipped-form').forEach(function (form) { form.style.display = 'none'; });
       });
 
       document.addEventListener('click', function (e) {

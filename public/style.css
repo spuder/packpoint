@@ -541,6 +541,69 @@ a:hover {
   margin-bottom: 0;
 }
 
+.ks-kebab-wrap {
+  position: relative;
+}
+
+.ks-kebab-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--chip);
+}
+
+.ks-kebab-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.ks-kebab-menu {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--chip);
+  box-shadow: var(--shadow);
+  min-width: 170px;
+  overflow: hidden;
+}
+
+.ks-kebab-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: 600 13px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ks-kebab-item:hover {
+  background: var(--surface-2);
+}
+
+.mark-shipped-form {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  width: 240px;
+}
+
 .ks-detail-order-no {
   font-size: 12.5px;
   color: var(--muted);
@@ -752,6 +815,20 @@ a:hover {
   font-size: 13px;
   color: var(--aging-fg);
   margin-top: 8px;
+}
+
+.mark-shipped-status {
+  font-size: 13px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.mark-shipped-status-error {
+  color: #b3261e;
+}
+
+.mark-shipped-status-ok {
+  color: var(--ready-fg);
 }
 
 .ks-print-status {
