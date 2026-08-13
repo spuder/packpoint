@@ -14,10 +14,33 @@ module ShippingApp
         @client = create_client
       end
 
+      # Creates the shipment (which is how EasyPost computes rates) without
+      # buying a label, so the buy window can show a price before the user
+      # commits. Returns the shipment id (to buy later via create_label's
+      # shipment_id:) plus the same lowest rate buying it would charge.
+      #
       # parcel_override, if given, must have :length, :width, :height and
       # :weight all present - anything else falls back to DEFAULT_PARCEL.
-      def create_label(order_number, order_data, from_address_id, parcel_override = nil)
+      def get_rate(order_number, order_data, from_address_id, parcel_override = nil)
         shipment = create_shipment(order_number, order_data, from_address_id, parcel_override)
+        rate = shipment.lowest_rate
+        {
+          shipment_id: shipment.id,
+          carrier: rate.carrier,
+          service: rate.service,
+          rate: rate.rate,
+          currency: rate.currency
+        }
+      end
+
+      # parcel_override, if given, must have :length, :width, :height and
+      # :weight all present - anything else falls back to DEFAULT_PARCEL.
+      # If shipment_id is given (from a prior get_rate call), that same
+      # shipment is bought instead of creating a new one - so the price
+      # charged matches the price already shown to the user, and
+      # order_data/parcel_override are ignored.
+      def create_label(order_number, order_data, from_address_id, parcel_override = nil, shipment_id: nil)
+        shipment = shipment_id ? @client.shipment.retrieve(shipment_id) : create_shipment(order_number, order_data, from_address_id, parcel_override)
         buy_shipment(shipment)
       end
 

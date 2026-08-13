@@ -213,6 +213,30 @@ module ShippingApp
         end
       end
 
+      # Shared by /rate_label and /buy_label, which both post the same
+      # shipping/parcel fields from the buy-label-form.
+      def order_data_from_params
+        {
+          'shipping_name' => params[:shipping_name],
+          'shipping_street' => params[:shipping_street],
+          'shipping_city' => params[:shipping_city],
+          'shipping_state' => params[:shipping_state],
+          'shipping_postcode' => params[:shipping_postcode],
+          'shipping_country' => params[:shipping_country],
+          'shipping_phone' => params[:shipping_phone].to_s.empty? ? nil : params[:shipping_phone],
+          'email' => params[:email].to_s.empty? ? nil : params[:email]
+        }
+      end
+
+      def parcel_override_from_params
+        {
+          length: params[:parcel_length],
+          width: params[:parcel_width],
+          height: params[:parcel_height],
+          weight: params[:parcel_weight]
+        }
+      end
+
       # Marks a Stripe order as shipped via the Stripe API (Checkout Session
       # metadata - see ShippingApp::StripeOrdersAPI for why it's the session
       # and not the PaymentIntent). Buying the label already succeeded by
@@ -292,34 +316,50 @@ module ShippingApp
       }
     end
 
-    post '/buy_label/:order_number' do
+    # Quotes a shipment (creates it, but doesn't buy a label) so the buy
+    # window can show a price for the entered box dimensions before the
+    # user commits. Returns the shipment id so /buy_label can buy this
+    # exact shipment afterward instead of quoting again.
+    post '/rate_label/:order_number' do
       order_number = params[:order_number]
       store_type = params[:store_type].to_s.empty? ? 'tindie' : params[:store_type]
       store_key = params[:store_key]
-      puts "Buying label for order: #{order_number} (store_type=#{store_type})"
-
-      order_data = {
-        'shipping_name' => params[:shipping_name],
-        'shipping_street' => params[:shipping_street],
-        'shipping_city' => params[:shipping_city],
-        'shipping_state' => params[:shipping_state],
-        'shipping_postcode' => params[:shipping_postcode],
-        'shipping_country' => params[:shipping_country],
-        'shipping_phone' => params[:shipping_phone].to_s.empty? ? nil : params[:shipping_phone],
-        'email' => params[:email].to_s.empty? ? nil : params[:email]
-      }
-      parcel_override = {
-        length: params[:parcel_length],
-        width: params[:parcel_width],
-        height: params[:parcel_height],
-        weight: params[:parcel_weight]
-      }
-      puts "Order Data: #{order_data.inspect}, Parcel: #{parcel_override.inspect}"
+      order_data = order_data_from_params
+      parcel_override = parcel_override_from_params
+      puts "Rating label for order: #{order_number} (store_type=#{store_type}), Parcel: #{parcel_override.inspect}"
 
       content_type :json
       begin
         from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override)
+        result = ShippingApp::ShippingService.new.get_rate(order_number, order_data, from_address_id, parcel_override)
+        { success: true }.merge(result).to_json
+      rescue EasyPost::Errors::EasyPostError => e
+        puts "EasyPost error rating label for #{order_number}: #{e.class} - #{e.message}"
+        status 422
+        { success: false, message: e.message }.to_json
+      rescue => e
+        puts "ERROR in rate_label: #{e.class} - #{e.message}"
+        puts e.backtrace.join("\n")
+        status 500
+        { success: false, message: e.message }.to_json
+      end
+    end
+
+    post '/buy_label/:order_number' do
+      order_number = params[:order_number]
+      store_type = params[:store_type].to_s.empty? ? 'tindie' : params[:store_type]
+      store_key = params[:store_key]
+      shipment_id = params[:shipment_id].to_s.empty? ? nil : params[:shipment_id]
+      puts "Buying label for order: #{order_number} (store_type=#{store_type})"
+
+      order_data = order_data_from_params
+      parcel_override = parcel_override_from_params
+      puts "Order Data: #{order_data.inspect}, Parcel: #{parcel_override.inspect}, Shipment: #{shipment_id.inspect}"
+
+      content_type :json
+      begin
+        from_address_id = find_from_address(store_type, store_key)
+        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id)
 
         # Store the label information in the session
         session[:orders] ||= {}

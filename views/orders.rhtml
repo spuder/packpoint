@@ -231,6 +231,7 @@
                             value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
                           <input type="hidden" name="email"
                             value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
+                          <input type="hidden" name="shipment_id" value="">
                           <% if is_openspool %>
                             <div class="ks-hint-box">Openspool default box: 6&times;4&times;4 in, 5oz</div>
                             <% else %>
@@ -246,7 +247,11 @@
                                   placeholder="oz" required>
                               </div>
                               <% end %>
-                                <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
+                                <div class="ks-rate-box" style="display:none;"></div>
+                                <div class="ks-buy-actions-row">
+                                  <button type="button" class="ks-btn-outline rate-check-btn">Check Price</button>
+                                  <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
+                                </div>
                         </form>
                         <div class="ks-form-error" style="display:none;"></div>
                         <div class="ks-form-warning" style="display:none;"></div>
@@ -354,6 +359,65 @@
               errorBox.style.display = 'block';
               submitBtn.disabled = false;
               submitBtn.textContent = originalLabel;
+            });
+        });
+      });
+
+      // "Check Price" quotes the shipment (creates it, doesn't buy it) so
+      // the box dimensions can be priced before committing. The quote's
+      // shipment_id is stashed in the form's hidden field so Buy purchases
+      // that same shipment - same price, no re-quote. Any edit to the
+      // dimension/weight inputs invalidates the stashed quote, since it no
+      // longer matches what's typed.
+      document.querySelectorAll('.buy-label-form').forEach(function (form) {
+        var rateBtn = form.querySelector('.rate-check-btn');
+        if (!rateBtn) return;
+
+        var rateBox = form.querySelector('.ks-rate-box');
+        var shipmentIdField = form.querySelector('input[name="shipment_id"]');
+        var errorBox = form.closest('.ks-detail-box').querySelector('.ks-form-error');
+        var originalLabel = rateBtn.textContent;
+
+        function invalidateRate() {
+          shipmentIdField.value = '';
+          rateBox.style.display = 'none';
+        }
+
+        form.querySelectorAll('input[name^="parcel_"]').forEach(function (input) {
+          input.addEventListener('input', invalidateRate);
+        });
+
+        rateBtn.addEventListener('click', function () {
+          if (!form.reportValidity()) return;
+
+          errorBox.style.display = 'none';
+          rateBtn.disabled = true;
+          rateBtn.textContent = 'Checking…';
+
+          fetch(form.action.replace('/buy_label/', '/rate_label/'), {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+            .then(parseJsonResponse)
+            .then(function (result) {
+              var data = result.data;
+              if (!result.ok || data.success === false) {
+                throw new Error(data.message || 'Failed to get a price');
+              }
+              shipmentIdField.value = data.shipment_id;
+              rateBox.innerHTML = '<span class="ks-rate-box-service">' + data.carrier + ' ' + data.service +
+                '</span><span class="ks-rate-box-price">$' + Number(data.rate).toFixed(2) + '</span>';
+              rateBox.style.display = 'flex';
+            })
+            .catch(function (error) {
+              console.error('Error:', error);
+              errorBox.textContent = error.message;
+              errorBox.style.display = 'block';
+            })
+            .finally(function () {
+              rateBtn.disabled = false;
+              rateBtn.textContent = originalLabel;
             });
         });
       });

@@ -657,6 +657,29 @@ a:hover {
   border: 1px dashed var(--border);
 }
 
+.ks-rate-box {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-family: var(--font-head);
+  font-size: 13.5px;
+  padding: 11px 14px;
+  border-radius: var(--chip);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+}
+
+.ks-rate-box-service {
+  color: var(--muted);
+}
+
+.ks-rate-box-price {
+  font-weight: 700;
+  font-size: 16px;
+}
+
 .ks-tracking-label {
   color: var(--muted);
 }
@@ -665,7 +688,8 @@ a:hover {
   font-weight: 600;
 }
 
-.ks-ship-btn-row {
+.ks-ship-btn-row,
+.ks-buy-actions-row {
   display: flex;
   gap: 10px;
 }
