@@ -260,7 +260,7 @@
                           <% if is_openspool %>
                             <div class="ks-hint-box">Openspool default box: 6&times;4&times;4 in, 5oz</div>
                             <% else %>
-                              <label class="ks-select-label">Box dimensions (in) &amp; weight (oz)</label>
+                              <label class="ks-select-label">Box dimensions (in) &amp; weight</label>
                               <div class="ks-dim-row">
                                 <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_length"
                                   placeholder="L" required>
@@ -268,8 +268,15 @@
                                   placeholder="W" required>
                                 <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_height"
                                   placeholder="H" required>
-                                <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_weight"
-                                  placeholder="oz" required>
+                                <div class="ks-weight-field">
+                                  <input class="ks-input weight-input" type="number" step="0.1" min="0.1"
+                                    placeholder="oz" required>
+                                  <div class="ks-unit-toggle">
+                                    <button type="button" class="ks-unit-btn ks-unit-btn-active" data-unit="oz">oz</button>
+                                    <button type="button" class="ks-unit-btn" data-unit="g">g</button>
+                                  </div>
+                                  <input type="hidden" name="parcel_weight" class="weight-value">
+                                </div>
                               </div>
                               <% end %>
                                 <div class="ks-rate-box" style="display:none;"></div>
@@ -385,6 +392,50 @@
               submitBtn.disabled = false;
               submitBtn.textContent = originalLabel;
             });
+        });
+      });
+
+      // Weight unit toggle (oz/g). The visible input holds whatever unit is
+      // currently selected; ShippingService/EasyPost always want ounces, so
+      // the hidden parcel_weight field - the one actually submitted with
+      // the form - is kept in ounces regardless of what's displayed.
+      // Switching units converts the number already typed rather than
+      // clearing it, and re-dispatches 'input' on the hidden field so the
+      // rate-invalidation listener wired up below still fires on a unit
+      // change, same as it would on any other weight edit.
+      var OUNCES_PER_GRAM = 1 / 28.3495;
+      var GRAMS_PER_OUNCE = 28.3495;
+
+      document.querySelectorAll('.ks-weight-field').forEach(function (field) {
+        var input = field.querySelector('.weight-input');
+        var hidden = field.querySelector('.weight-value');
+        var buttons = field.querySelectorAll('.ks-unit-btn');
+        var unit = 'oz';
+
+        function syncHidden() {
+          var value = parseFloat(input.value);
+          var ounces = isNaN(value) ? '' : (unit === 'g' ? value * OUNCES_PER_GRAM : value);
+          hidden.value = ounces === '' ? '' : Math.round(ounces * 100) / 100;
+          hidden.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        input.addEventListener('input', syncHidden);
+
+        buttons.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            if (btn.dataset.unit === unit) return;
+
+            var value = parseFloat(input.value);
+            if (!isNaN(value)) {
+              var converted = btn.dataset.unit === 'g' ? value * GRAMS_PER_OUNCE : value * OUNCES_PER_GRAM;
+              input.value = Math.round(converted * 10) / 10;
+            }
+
+            unit = btn.dataset.unit;
+            input.placeholder = unit;
+            buttons.forEach(function (b) { b.classList.toggle('ks-unit-btn-active', b === btn); });
+            syncHidden();
+          });
         });
       });
 

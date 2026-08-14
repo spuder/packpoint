@@ -918,6 +918,56 @@ a:hover {
   margin-bottom: 12px;
 }
 
+/* L/W/H only ever run 1-2 digits, but weight (in either unit) is
+   routinely 3+ plus the unit toggle, so give it twice the width of the
+   others rather than splitting the row evenly. */
+.ks-dim-row > .ks-input {
+  flex: 1;
+}
+
+.ks-weight-field {
+  position: relative;
+  flex: 2;
+  min-width: 0;
+}
+
+.ks-weight-field .ks-input {
+  padding-right: 58px;
+}
+
+.ks-unit-toggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.ks-unit-btn {
+  height: auto;
+  margin: 0;
+  padding: 3px 7px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font: 700 10px var(--font);
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: normal;
+  background: transparent;
+  color: var(--muted);
+}
+
+.ks-unit-btn.ks-unit-btn-active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
 .ks-input {
   width: 100%;
   height: auto;
