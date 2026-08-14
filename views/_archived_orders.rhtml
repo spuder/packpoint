@@ -10,7 +10,8 @@
   <div class="ks-hint-box">No orders shipped in the last <%= archive_days %> days.</div>
   <% else %>
     <div class="ks-table ks-archive-table">
-      <div class="ks-col-header ks-archive-col-header">
+      <div class="ks-col-header">
+        <div></div>
         <div>Product</div>
         <div>Store</div>
         <div>Order</div>
@@ -22,43 +23,128 @@
 
       <% orders.each do |order| %>
         <% total_qty = order.products.sum(&:qty) %>
-          <div class="ks-row ks-archive-row" style="cursor:default;">
-            <div>
-              <div class="ks-product-name">
-                <%= order.products.map(&:name).join(", ") %></div>
-              <div class="ks-product-sub">
-                <%= total_qty %>
-                <%= total_qty==1 ? 'item' : 'items' %>
+          <div class="ks-row-wrap">
+            <div class="ks-row" data-target="archived-details-<%= order.order_number %>">
+              <div class="ks-chevron">▸</div>
+              <div>
+                <div class="ks-product-name">
+                  <%= order.products.map(&:name).join(", ") %></div>
+                <div class="ks-product-sub">
+                  <%= total_qty %>
+                  <%= total_qty==1 ? 'item' : 'items' %>
+                </div>
+              </div>
+              <div>
+                <span class="ks-store-badge"><span class="ks-store-dot"></span><%= order.store_display_name %></span>
+              </div>
+              <div class="ks-order-no" title="<%= order.order_number %>">
+                <%= display_order_number(order) %>
+              </div>
+              <div class="ks-age">
+                <%= (order.date_shipped || order.date).to_time.strftime('%b %-d') %>
+              </div>
+              <div class="ks-recipient">
+                <%= order.address_dict[:recipient_name] %>
+              </div>
+              <div class="ks-destination">
+                <span class="ks-flag">
+                  <%= countries[order.address_dict[:country_code]] %>
+                </span>
+                <span>
+                  <%= order.address_dict[:country] %>
+                </span>
+              </div>
+              <div class="ks-label-col">
+                <% if order.tracking_code.to_s.empty? %>
+                  <span class="ks-status-pill">—</span>
+                  <% elsif order.tracking_url.to_s.empty? %>
+                    <span class="ks-tracking-code"><%= order.tracking_code %></span>
+                    <% else %>
+                      <a class="ks-tracking-code" href="<%= order.tracking_url %>" target="_blank"><%= order.tracking_code %></a>
+                      <% end %>
               </div>
             </div>
-            <div>
-              <span class="ks-store-badge"><span class="ks-store-dot"></span><%= order.store_display_name %></span>
-            </div>
-            <div class="ks-order-no" title="<%= order.order_number %>">
-              <%= display_order_number(order) %>
-            </div>
-            <div class="ks-age">
-              <%= (order.date_shipped || order.date).to_time.strftime('%b %-d') %>
-            </div>
-            <div class="ks-recipient">
-              <%= order.address_dict[:recipient_name] %>
-            </div>
-            <div class="ks-destination">
-              <span class="ks-flag">
-                <%= countries[order.address_dict[:country_code]] %>
-              </span>
-              <span>
-                <%= order.address_dict[:country] %>
-              </span>
-            </div>
-            <div class="ks-label-col">
-              <% if order.tracking_code.to_s.empty? %>
-                <span class="ks-status-pill">—</span>
-                <% elsif order.tracking_url.to_s.empty? %>
-                  <span class="ks-tracking-code"><%= order.tracking_code %></span>
-                  <% else %>
-                    <a class="ks-tracking-code" href="<%= order.tracking_url %>" target="_blank"><%= order.tracking_code %></a>
+
+            <div class="ks-detail" id="archived-details-<%= order.order_number %>" style="display:none;">
+              <div class="ks-detail-grid">
+                <div class="ks-detail-box">
+                  <div class="ks-detail-box-head">
+                    <div class="ks-detail-box-title">Items</div>
+                    <div class="ks-detail-order-no" title="<%= order.order_number %>">
+                      <%= display_order_number(order) %>
+                    </div>
+                  </div>
+                  <% order.products.each do |item| %>
+                    <div class="ks-item-row">
+                      <span class="ks-qty-badge <%= 'ks-qty-badge-multi' if item.qty > 1 %>">&times;<%= item.qty %></span>
+                      <div class="ks-item-info">
+                        <div class="ks-item-name">
+                          <%= item.name %>
+                        </div>
+                        <div class="ks-item-opt">
+                          <%= item.options %>
+                        </div>
+                      </div>
+                      <div class="ks-item-price">$<%= '%.2f' % item.price %>
+                      </div>
+                    </div>
                     <% end %>
+                      <div class="ks-item-actions">
+                        <% if order.store_type=='tindie' %>
+                          <a class="ks-btn-outline" href="https://www.tindie.com/orders/print/<%= order.order_number %>"
+                            onclick="window.open(this.href, '_blank'); return false;">Print Packing Slip</a>
+                          <button type="button" class="ks-btn-ghost"
+                            onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
+                            Slip &rarr;</button>
+                          <% else %>
+                            <button type="button" class="ks-btn-ghost"
+                              onclick="window.open('https://dashboard.stripe.com/payments/<%= order.payment_intent_id %>', '_blank')">View
+                              in Stripe &rarr;</button>
+                            <% end %>
+                      </div>
+                </div>
+
+                <div class="ks-detail-box">
+                  <div class="ks-detail-box-head">
+                    <div class="ks-detail-box-title">Ship To</div>
+                  </div>
+                  <div class="ks-ship-address">
+                    <div class="ks-ship-name">
+                      <%= order.address_dict[:recipient_name] %>
+                    </div>
+                    <div class="ks-ship-muted">
+                      <%= order.address_dict[:street] %>
+                    </div>
+                    <div class="ks-ship-muted">
+                      <%= order.address_dict[:city] %>, <%= order.address_dict[:state] %>
+                          <%= order.address_dict[:postcode] %>
+                    </div>
+                    <div class="ks-ship-country">
+                      <span class="ks-flag">
+                        <%= countries[order.address_dict[:country_code]] %>
+                      </span>
+                      <span>
+                        <%= order.address_dict[:country] %>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="ks-ship-action">
+                    <% if order.tracking_code.to_s.empty? %>
+                      <div class="ks-hint-box">No tracking code on file</div>
+                      <% else %>
+                        <div class="ks-tracking-box">
+                          <span class="ks-tracking-label">TRK</span>
+                          <% if order.tracking_url.to_s.empty? %>
+                            <span class="ks-tracking-code"><%= order.tracking_code %></span>
+                            <% else %>
+                              <a class="ks-tracking-code" href="<%= order.tracking_url %>" target="_blank"><%= order.tracking_code %></a>
+                              <% end %>
+                        </div>
+                        <% end %>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <% end %>

@@ -356,14 +356,6 @@ a:hover {
   gap: 10px;
 }
 
-/* Archive table has no expand chevron column, so one fewer track. */
-.ks-archive-col-header,
-.ks-archive-row {
-  grid-template-columns: minmax(190px, 2.4fr) 132px 128px 104px minmax(150px, 1.5fr) 148px 158px;
-  align-items: center;
-  gap: 10px;
-}
-
 .ks-col-header {
   padding: 13px 18px;
   background: var(--surface-2);
@@ -485,6 +477,20 @@ a:hover {
 .ks-label-col {
   display: flex;
   justify-content: flex-end;
+  min-width: 0;
+}
+
+.ks-label-col > * {
+  min-width: 0;
+}
+
+/* Archive row's tracking code can be long enough to run into the
+   Destination column otherwise - the detail panel's own tracking box
+   isn't width-constrained, so it's untouched by this. */
+.ks-label-col .ks-tracking-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ks-status-pill {

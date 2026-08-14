@@ -311,6 +311,8 @@ module ShippingApp
       erb :_archived_orders, layout: false, locals: {
         orders: archived_orders,
         stripe_warnings: @stripe_warnings,
+        username: ENV['TINDIE_USERNAME'],
+        api_key: ENV['TINDIE_API_KEY'],
         countries: COUNTRY_FLAGS,
         archive_days: ARCHIVE_WINDOW_DAYS
       }

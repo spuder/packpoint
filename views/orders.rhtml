@@ -329,14 +329,22 @@
       });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('.ks-row').forEach(function (row) {
+    // Wires up the click-to-expand behavior for order rows - shared by the
+    // main table (bound once on load) and the archive table (re-bound each
+    // time its rows are fetched/replaced, since they don't exist yet at
+    // DOMContentLoaded).
+    function bindExpandableRows(root) {
+      root.querySelectorAll('.ks-row').forEach(function (row) {
         row.addEventListener('click', function () {
           var target = document.getElementById(row.dataset.target);
           var expanded = row.classList.toggle('ks-row-expanded');
           target.style.display = expanded ? 'block' : 'none';
         });
       });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      bindExpandableRows(document);
 
       document.querySelectorAll('.buy-label-form').forEach(function (form) {
         form.addEventListener('submit', function (e) {
@@ -665,6 +673,7 @@
           })
           .then(function (html) {
             archiveContent.innerHTML = html;
+            bindExpandableRows(archiveContent);
             archiveLoaded = true;
             archiveRefresh.style.display = 'inline-block';
           })
