@@ -713,6 +713,72 @@ a:hover {
   margin-bottom: 12px;
 }
 
+.ks-hint-warn {
+  background: var(--aging-bg);
+  color: var(--aging-fg);
+}
+
+.ks-hint-warn code {
+  font-family: var(--font-head);
+  font-size: 12px;
+}
+
+/* International ship panel */
+.ks-verify-box {
+  padding: 11px 14px;
+  border-radius: var(--chip);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.ks-verify-ok {
+  background: var(--ready-bg);
+  color: var(--ready-fg);
+  border-style: solid;
+  border-color: transparent;
+}
+
+.ks-verify-warn {
+  background: var(--aging-bg);
+  color: var(--aging-fg);
+  border-style: solid;
+  border-color: transparent;
+}
+
+.ks-verify-status {
+  font-weight: 600;
+}
+
+.ks-verify-detail {
+  margin-top: 4px;
+  font-size: 12.5px;
+  opacity: 0.85;
+}
+
+.ks-customs-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ks-customs-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.6fr 0.6fr 0.8fr;
+  gap: 6px;
+}
+
+.ks-customs-row-missing .ks-input {
+  border-color: var(--aging-fg);
+}
+
+.ks-input-narrow {
+  min-width: 0;
+}
+
 .ks-tracking-box {
   display: flex;
   align-items: center;

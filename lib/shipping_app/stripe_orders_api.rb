@@ -1,12 +1,53 @@
 module ShippingApp
   class StripeProduct
-    attr_reader :name, :qty, :price, :options
+    attr_reader :name, :qty, :price, :options, :unit_price, :customs_metadata
 
-    def initialize(line_item)
+    # metadata_resolver, if given, is called with a Stripe product id
+    # (String) and must return that product's metadata as a Hash - see
+    # StripeOrdersAPI#product_metadata. Used to read customs fields
+    # (hs_tariff_number/customs_description/customs_origin_country/
+    # customs_value) off the Stripe Product's own metadata, which is the
+    # natural place for it since (unlike Tindie - see CustomsCatalog)
+    # Stripe products support arbitrary metadata directly.
+    def initialize(line_item, metadata_resolver = nil)
       @name = line_item.description
       @qty = line_item.quantity
       @price = line_item.amount_total.to_f / 100
       @options = nil
+
+      price = line_item.respond_to?(:price) ? line_item.price : nil
+      @unit_price = price&.unit_amount ? price.unit_amount.to_f / 100 : nil
+      @customs_metadata = build_customs_metadata(product_metadata(price, metadata_resolver))
+    end
+
+    private
+
+    # Checkout Session line items always carry a snapshot `price`, but
+    # `price.product` is just an id string unless separately expanded (and
+    # expanding that deep isn't possible from a *list* of sessions - see
+    # StripeOrdersAPI#product_metadata). Handle both shapes defensively:
+    # an already-expanded Product object (responds to metadata) or a bare
+    # id resolved via metadata_resolver. Always returns a plain, symbol-
+    # keyed Hash (Stripe::StripeObject#to_hash's own convention) so
+    # build_customs_metadata doesn't have to care which shape it came from.
+    def product_metadata(price, metadata_resolver)
+      product = price&.product
+      metadata = if product.respond_to?(:metadata)
+                   product.metadata
+                 elsif product.is_a?(String) && metadata_resolver
+                   metadata_resolver.call(product)
+                 end
+
+      metadata.respond_to?(:to_hash) ? metadata.to_hash : {}
+    end
+
+    def build_customs_metadata(metadata)
+      {
+        hs_tariff_number: metadata[:hs_tariff_number],
+        origin_country: metadata[:customs_origin_country],
+        customs_description: metadata[:customs_description],
+        value: metadata[:customs_value].to_s.empty? ? nil : metadata[:customs_value].to_f
+      }
     end
   end
 
@@ -32,12 +73,12 @@ module ShippingApp
     # no shorter identifier to fall back on (see #short_order_number).
     ID_SUFFIX_LENGTH = 8
 
-    def initialize(session, country_names: COUNTRY_NAMES)
+    def initialize(session, country_names: COUNTRY_NAMES, product_metadata_resolver: nil)
       @json_parsed = session
       @order_number = session.id
       @client_reference_id = session.respond_to?(:client_reference_id) ? session.client_reference_id : nil
       @date = Time.at(session.created)
-      @products = Array(session.line_items&.data).map { |item| StripeProduct.new(item) }
+      @products = Array(session.line_items&.data).map { |item| StripeProduct.new(item, product_metadata_resolver) }
 
       # fetch_paid_sessions expands payment_intent, so this is the full
       # object (with metadata) rather than just an id.
@@ -126,7 +167,7 @@ module ShippingApp
     # shipped ones.
     def get_all_orders(shipped = false, created_after: nil)
       sessions = fetch_paid_sessions(created_after: created_after)
-      orders = sessions.map { |session| StripeOrder.new(session) }
+      orders = sessions.map { |session| StripeOrder.new(session, product_metadata_resolver: method(:product_metadata)) }
 
       with_address = orders.select(&:has_shipping_address?)
       without_address = orders.size - with_address.size
@@ -158,6 +199,26 @@ module ShippingApp
     end
 
     private
+
+    # Product metadata (HS tariff code, origin country, customs
+    # description/value - see StripeProduct) lives on the Stripe Product,
+    # not the line item. Checkout Session *list* responses can't expand
+    # that deep - Stripe caps expansion at 4 levels, and
+    # "data.line_items.data.price.product" is 5 - so it's resolved with one
+    # Product#retrieve per distinct product id instead, memoized per fetch
+    # so repeat products (the common case across orders) cost one API call
+    # each, not one per order.
+    def product_metadata(product_id)
+      return {} unless product_id
+
+      @product_metadata_cache ||= {}
+      return @product_metadata_cache[product_id] if @product_metadata_cache.key?(product_id)
+
+      @product_metadata_cache[product_id] = @client.v1.products.retrieve(product_id).metadata.to_hash
+    rescue Stripe::StripeError => e
+      puts "WARNING: Stripe[#{@store_name}]: failed to fetch product #{product_id} metadata: #{e.message}"
+      @product_metadata_cache[product_id] = {}
+    end
 
     def fetch_paid_sessions(created_after: nil)
       results = []

@@ -235,10 +235,107 @@
                     </div>
                     <div class="ks-print-status" style="display:none;"></div>
                     <% elsif status=='intl' %>
-                      <div class="ks-hint-box">International destination · customs required. Process via EasyPost.</div>
-                      <a class="ks-btn-intl" href="https://www.easypost.com" target="_blank">Ship Internationally
-                        &rarr;</a>
-                      <% else %>
+                      <% customs_items = customs_items_for(order); customs_missing = customs_items.any? { |item| item[:missing] } %>
+                        <div class="ks-verify-box" data-order-number="<%= order.order_number %>" data-pending="true">
+                          <div class="ks-verify-status">Address not checked yet</div>
+                        </div>
+
+                        <% if customs_missing %>
+                          <div class="ks-hint-box ks-hint-warn">⚠️ Missing HS code / origin country for one or more
+                            items below - Tindie doesn't provide this, so it needs to be filled in by hand (or added to
+                            <code>config/customs_catalog.yml</code> for next time).</div>
+                          <% end %>
+
+                            <form class="buy-label-form intl-label-form" action="/buy_label/<%= order.order_number %>"
+                              method="post">
+                              <input type="hidden" name="store_type" value="<%= order.store_type %>">
+                              <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                              <input type="hidden" name="payment_intent_id"
+                                value="<%= order.payment_intent_id if order.store_type == 'stripe' %>">
+                              <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
+                              <input type="hidden" name="shipping_street" value="<%= order.address_dict[:street] %>">
+                              <input type="hidden" name="shipping_city" value="<%= order.address_dict[:city] %>">
+                              <input type="hidden" name="shipping_state" value="<%= order.address_dict[:state] %>">
+                              <input type="hidden" name="shipping_postcode" value="<%= order.address_dict[:postcode] %>">
+                              <!-- Country as an ISO-3166 code, not the display name (unlike the domestic form) -
+                                   EasyPost/carrier address matching for non-US countries is far less forgiving of
+                                   "Deutschland" vs "Germany" vs "DE" than it is of the various ways to spell "United
+                                   States", so the code is what actually gets sent. -->
+                              <input type="hidden" name="shipping_country" value="<%= order.address_dict[:country_code] %>">
+                              <input type="hidden" name="shipping_phone"
+                                value="<%= order.recipient_phone unless order.recipient_phone.to_s.empty? %>">
+                              <input type="hidden" name="email"
+                                value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
+                              <input type="hidden" name="shipment_id" value="">
+                              <input type="hidden" name="carrier" value="usps">
+                              <input type="hidden" name="customs_required" value="1">
+                              <input type="hidden" name="customs_items" class="customs-items-field" value="">
+
+                              <% if is_openspool %>
+                                <div class="ks-hint-box">Openspool default box: 6&times;4&times;4 in, 5oz</div>
+                                <% else %>
+                                  <label class="ks-select-label">Box dimensions (in) &amp; weight</label>
+                                  <div class="ks-dim-row">
+                                    <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_length"
+                                      placeholder="L" required>
+                                    <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_width"
+                                      placeholder="W" required>
+                                    <input class="ks-input" type="number" step="0.1" min="0.1" name="parcel_height"
+                                      placeholder="H" required>
+                                    <div class="ks-weight-field">
+                                      <input class="ks-input weight-input" type="number" step="0.1" min="0.1"
+                                        placeholder="oz" required>
+                                      <div class="ks-unit-toggle">
+                                        <button type="button" class="ks-unit-btn ks-unit-btn-active"
+                                          data-unit="oz">oz</button>
+                                        <button type="button" class="ks-unit-btn" data-unit="g">g</button>
+                                      </div>
+                                      <input type="hidden" name="parcel_weight" class="weight-value">
+                                    </div>
+                                  </div>
+                                  <% end %>
+
+                                    <label class="ks-select-label">Customs items - value is the total for the line
+                                      (qty &times; unit price), not per unit</label>
+                                    <div class="ks-customs-items">
+                                      <% customs_items.each do |item| %>
+                                        <div class="ks-customs-row <%= 'ks-customs-row-missing' if item[:missing] %>">
+                                          <input class="ks-input" type="text" data-field="description"
+                                            value="<%= item[:description] %>" placeholder="Description" required>
+                                          <input class="ks-input ks-input-narrow" type="text" data-field="hs_tariff_number"
+                                            value="<%= item[:hs_tariff_number] %>" placeholder="HS code" required>
+                                          <input class="ks-input ks-input-narrow" type="text" data-field="origin_country"
+                                            value="<%= item[:origin_country] %>" placeholder="Origin" maxlength="2"
+                                            required>
+                                          <input class="ks-input ks-input-narrow" type="number" step="1" min="1"
+                                            data-field="quantity" value="<%= item[:quantity] %>" placeholder="Qty"
+                                            required>
+                                          <input class="ks-input ks-input-narrow" type="number" step="0.01" min="0"
+                                            data-field="value" value="<%= '%.2f' % item[:value] %>"
+                                            placeholder="Total value" required>
+                                        </div>
+                                        <% end %>
+                                    </div>
+
+                                    <div class="ks-rate-box" style="display:none;"></div>
+                                    <div class="ks-buy-actions-row">
+                                      <button type="button" class="ks-btn-outline rate-check-btn">Check Price</button>
+                                      <button type="submit" class="ks-btn-primary">Buy Shipping Label</button>
+                                    </div>
+                            </form>
+                            <div class="ks-form-error" style="display:none;"></div>
+                            <div class="ks-form-warning" style="display:none;"></div>
+                            <div class="ks-tracking-box" style="display:none;">
+                              <span class="ks-tracking-label">TRK</span>
+                              <span class="ks-tracking-code"></span>
+                            </div>
+                            <div class="ks-ship-btn-row" style="display:none;">
+                              <button type="button" class="ks-btn-primary print-label-btn" data-label-url="">Print
+                                Shipping Label</button>
+                              <a class="ks-btn-outline label-link" href="#" target="_blank">View</a>
+                            </div>
+                            <div class="ks-print-status" style="display:none;"></div>
+                            <% else %>
                         <div class="ks-hint-box">Domestic (US)</div>
                         <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
                           <input type="hidden" name="store_type" value="<%= order.store_type %>">
@@ -339,12 +436,94 @@
           var target = document.getElementById(row.dataset.target);
           var expanded = row.classList.toggle('ks-row-expanded');
           target.style.display = expanded ? 'block' : 'none';
+
+          // International orders: check the address the first time the row
+          // is expanded, not on page load - it's a live EasyPost call per
+          // order, so no point paying for it on rows nobody opens.
+          if (expanded) {
+            var verifyBox = target.querySelector('.ks-verify-box[data-pending="true"]');
+            if (verifyBox) verifyAddress(verifyBox);
+          }
         });
       });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
       bindExpandableRows(document);
+
+      // International orders: keep the hidden customs_items field (JSON)
+      // in sync with the editable description/HS code/origin/qty/value
+      // inputs, so /rate_label and /buy_label always see whatever's
+      // currently in the form - not just what CustomsInfoBuilder pre-filled
+      // from the catalog/Stripe metadata at page load.
+      document.querySelectorAll('.intl-label-form').forEach(function (form) {
+        var itemsField = form.querySelector('.customs-items-field');
+        var rows = form.querySelectorAll('.ks-customs-row');
+
+        function syncCustomsItems() {
+          var items = Array.prototype.map.call(rows, function (row) {
+            var item = {};
+            row.querySelectorAll('[data-field]').forEach(function (input) {
+              item[input.dataset.field] = input.value;
+            });
+            return item;
+          });
+          itemsField.value = JSON.stringify(items);
+        }
+
+        form.querySelectorAll('[data-field]').forEach(function (input) {
+          input.addEventListener('input', syncCustomsItems);
+        });
+
+        syncCustomsItems();
+      });
+
+      // International orders: proactively verifies the shipping address
+      // against EasyPost/carrier data - foreign addresses frequently don't
+      // match strict verification (missing region codes, transliteration,
+      // unsupported country, etc.) even when they're perfectly
+      // deliverable, so this is shown as a heads-up, not a block: the buy
+      // button still works either way. Reuses the intl form's own hidden
+      // shipping_* fields so what's checked always matches what would
+      // actually be bought.
+      function verifyAddress(box) {
+        var form = box.closest('.ks-detail-box').querySelector('.intl-label-form');
+        box.dataset.pending = 'false';
+        box.className = 'ks-verify-box';
+        box.innerHTML = '<div class="ks-verify-status">Checking address…</div>';
+
+        fetch('/verify_address/' + encodeURIComponent(box.dataset.orderNumber), {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+          .then(parseJsonResponse)
+          .then(function (result) {
+            var data = result.data;
+            if (!result.ok || data.success === false) {
+              throw new Error(data.message || 'Address check failed');
+            }
+
+            if (data.verified) {
+              box.className = 'ks-verify-box ks-verify-ok';
+              box.innerHTML = '<div class="ks-verify-status">✓ Address verified by EasyPost</div>';
+            } else {
+              box.className = 'ks-verify-box ks-verify-warn';
+              var html = '<div class="ks-verify-status">⚠️ Address did not verify - double-check it before buying.</div>';
+              (data.messages || []).forEach(function (message) {
+                html += '<div class="ks-verify-detail">' + message + '</div>';
+              });
+              if (data.normalized_address) {
+                html += '<div class="ks-verify-detail">EasyPost read this as: ' + data.normalized_address + '</div>';
+              }
+              box.innerHTML = html;
+            }
+          })
+          .catch(function (error) {
+            box.className = 'ks-verify-box ks-verify-warn';
+            box.innerHTML = '<div class="ks-verify-status">⚠️ Could not check address: ' + error.message + '</div>';
+          });
+      }
 
       document.querySelectorAll('.buy-label-form').forEach(function (form) {
         form.addEventListener('submit', function (e) {
@@ -453,7 +632,7 @@
       // that same shipment - same price, no re-quote. Any edit to the
       // dimension/weight inputs invalidates the stashed quote, since it no
       // longer matches what's typed.
-      var CARRIER_LABELS = { usps: 'USPS', fedex: 'FedEx', ups: 'UPS' };
+      var CARRIER_LABELS = { usps: 'USPS', fedex: 'FedEx', ups: 'UPS', dhl: 'DHL' };
       // Short monogram shown in the carrier icon badge - see .ks-carrier-icon
       // in style.css for the brand colors keyed off the same carrier codes.
       var CARRIER_MONOGRAMS = { usps: 'US', fedex: 'Fx', ups: 'UPS', dhl: 'DHL' };

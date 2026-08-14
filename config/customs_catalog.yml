@@ -1,0 +1,39 @@
+# Hardcoded customs metadata for Tindie products, used when buying an
+# international label - see lib/shipping_app/customs_catalog.rb and
+# lib/shipping_app/customs_info_builder.rb.
+#
+# Tindie's API doesn't expose per-product customs fields (unlike Stripe,
+# where this lives as native Product metadata - see StripeProduct), so it's
+# hardcoded here instead. Add an entry whenever a new product ships
+# internationally; anything missing just shows up blank/required in the
+# international ship panel so a label can't go out with an empty customs
+# form by accident.
+#
+# Keyed by Tindie SKU (falls back to model/model number if a product has no
+# SKU set). Matching is case-insensitive.
+#
+#   hs_tariff_number:   Harmonized System code for the customs form, digits
+#                        only (e.g. "8517.62.0090" or "8517620090"). Look
+#                        yours up at https://hts.usitc.gov/ (US) or your
+#                        country's tariff schedule.
+#   origin_country:     ISO-3166 alpha-2 country of manufacture (not where
+#                        it ships from - e.g. "CN" if assembled in China
+#                        even though it ships from a US warehouse).
+#   customs_description: Short, specific, honest description of the goods.
+#                        Vague descriptions ("gift", "electronics") are the
+#                        single biggest cause of customs holds.
+#   value:               Optional per-unit declared value in USD (gets
+#                        multiplied by quantity for the customs form, since
+#                        EasyPost wants the total for the line). Omit to
+#                        fall back to what the order was actually paid.
+#
+# Example:
+#
+# products:
+#   OS-KIT-001:
+#     hs_tariff_number: "8517.62.0090"
+#     origin_country: US
+#     customs_description: "USB network adapter, electronic"
+#     # value: 19.99
+
+products: {}

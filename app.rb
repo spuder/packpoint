@@ -237,6 +237,42 @@ module ShippingApp
         }
       end
 
+      # Draft customs items for an order's international ship panel -
+      # pre-filled from CustomsCatalog (Tindie) / Product metadata (Stripe)
+      # via CustomsInfoBuilder, then rendered as editable fields the person
+      # buying the label can correct before submitting. See
+      # customs_items_from_params for the other end of this round trip.
+      def customs_items_for(order)
+        ShippingApp::CustomsInfoBuilder.build(order)
+      end
+
+      # The international buy/rate form posts its (possibly hand-edited)
+      # customs items back as one JSON field rather than N indexed fields -
+      # simpler than parsing a dynamic-length array out of form params, and
+      # this app already treats the buy form as a trusted internal tool
+      # (parcel dimensions are free-typed the same way). Returns [] when
+      # nothing was posted (the domestic form doesn't send this field at
+      # all), so callers can tell "no customs items" from "malformed JSON".
+      def customs_items_from_params
+        raw = params[:customs_items].to_s
+        return [] if raw.strip.empty?
+
+        JSON.parse(raw, symbolize_names: true)
+      rescue JSON::ParserError
+        raise ShippingApp::ValidationError, "Could not read customs item details - please re-check the customs fields and try again"
+      end
+
+      # International labels need a customs form - rather than let EasyPost
+      # reject an incomplete request with a carrier-facing error, this
+      # fails fast with a clearer message when the international ship panel
+      # (params[:customs_required] == '1' - see views/orders.rhtml) somehow
+      # submitted with no items, e.g. a JS bug or a stale/duplicated tab.
+      def require_customs_items!(customs_items)
+        return unless params[:customs_required] == '1' && customs_items.empty?
+
+        raise ShippingApp::ValidationError, 'International shipments require at least one customs item - refresh the page and try again'
+      end
+
       # Marks a Stripe order as shipped via the Stripe API (PaymentIntent
       # metadata - see ShippingApp::StripeOrdersAPI for why it's the
       # PaymentIntent and not the Checkout Session). Buying the label
@@ -332,9 +368,14 @@ module ShippingApp
 
       content_type :json
       begin
+        customs_items = customs_items_from_params
+        require_customs_items!(customs_items)
         from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.get_rates(order_number, order_data, from_address_id, parcel_override)
+        result = ShippingApp::ShippingService.new.get_rates(order_number, order_data, from_address_id, parcel_override, customs_items: customs_items)
         { success: true }.merge(result).to_json
+      rescue ShippingApp::ValidationError => e
+        status 422
+        { success: false, message: e.message }.to_json
       rescue EasyPost::Errors::EasyPostError => e
         puts "EasyPost error rating label for #{order_number}: #{e.class} - #{e.message}"
         status 422
@@ -361,8 +402,10 @@ module ShippingApp
 
       content_type :json
       begin
+        customs_items = customs_items_from_params
+        require_customs_items!(customs_items)
         from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id, carrier: carrier)
+        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id, carrier: carrier, customs_items: customs_items)
 
         # Store the label information in the session
         session[:orders] ||= {}
@@ -376,6 +419,9 @@ module ShippingApp
         response_body = { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }
         response_body[:warning] = "Label bought, but Stripe wasn't updated: #{stripe_warning}" if stripe_warning
         response_body.to_json
+      rescue ShippingApp::ValidationError => e
+        status 422
+        { success: false, message: e.message }.to_json
       rescue EasyPost::Errors::EasyPostError => e
         puts "EasyPost error buying label for #{order_number}: #{e.class} - #{e.message}"
         status 422
@@ -383,6 +429,30 @@ module ShippingApp
       rescue => e
         puts "ERROR in buy_label: #{e.class} - #{e.message}"
         puts e.backtrace.join("\n")
+        status 500
+        { success: false, message: e.message }.to_json
+      end
+    end
+
+    # International addresses frequently fail strict carrier verification
+    # even when they're perfectly deliverable (EasyPost's delivery
+    # verification coverage varies a lot by country/region), so this is
+    # feedback for the person buying the label, not a gate - see
+    # ShippingService#verify_address. Address fields are read from the same
+    # posted fields as /rate_label and /buy_label (not re-fetched from
+    # Tindie/Stripe), so what's checked always matches what would actually
+    # be bought.
+    post '/verify_address/:order_number' do
+      order_number = params[:order_number]
+      order_data = order_data_from_params
+      puts "Verifying address for order: #{order_number}"
+
+      content_type :json
+      begin
+        result = ShippingApp::ShippingService.new.verify_address(order_data)
+        { success: true }.merge(result).to_json
+      rescue => e
+        puts "ERROR in verify_address: #{e.class} - #{e.message}"
         status 500
         { success: false, message: e.message }.to_json
       end
