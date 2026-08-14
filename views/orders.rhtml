@@ -395,6 +395,9 @@
       // dimension/weight inputs invalidates the stashed quote, since it no
       // longer matches what's typed.
       var CARRIER_LABELS = { usps: 'USPS', fedex: 'FedEx', ups: 'UPS' };
+      // Short monogram shown in the carrier icon badge - see .ks-carrier-icon
+      // in style.css for the brand colors keyed off the same carrier codes.
+      var CARRIER_MONOGRAMS = { usps: 'US', fedex: 'Fx', ups: 'UPS', dhl: 'DHL' };
 
       document.querySelectorAll('.buy-label-form').forEach(function (form) {
         var rateBtn = form.querySelector('.rate-check-btn');
@@ -451,6 +454,7 @@
                 option.className = 'ks-rate-option';
                 option.innerHTML = '<input type="radio" name="' + radioName + '" value="' + rate.carrier + '"' +
                   (index === 0 ? ' checked' : '') + '>' +
+                  '<span class="ks-carrier-icon ks-carrier-icon--' + rate.carrier + '">' + (CARRIER_MONOGRAMS[rate.carrier] || '') + '</span>' +
                   '<span class="ks-rate-box-service">' + (CARRIER_LABELS[rate.carrier] || rate.carrier) + ' ' + rate.service + '</span>' +
                   '<span class="ks-rate-box-price">$' + Number(rate.rate).toFixed(2) + '</span>';
                 option.querySelector('input').addEventListener('change', function () {

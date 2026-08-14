@@ -745,6 +745,41 @@ a:hover {
   border-color: var(--accent);
 }
 
+.ks-carrier-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 18px;
+  border-radius: 4px;
+  font-family: var(--font-head);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff;
+}
+
+/* Brand colors, used only to tell carriers apart at a glance. */
+.ks-carrier-icon--usps {
+  background: #333366;
+}
+
+.ks-carrier-icon--ups {
+  background: #351c15;
+  color: #ffb500;
+}
+
+.ks-carrier-icon--dhl {
+  background: #d40511;
+  color: #ffcc00;
+}
+
+.ks-carrier-icon--fedex {
+  background: #4d148c;
+}
+
 .ks-rate-box-service {
   color: var(--muted);
   flex: 1;
