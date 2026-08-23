@@ -1,0 +1,105 @@
+#!/usr/bin/env ruby
+# bin/etsy_oauth
+#
+# One-time interactive helper to get the ACCESS_TOKEN/REFRESH_TOKEN pair an
+# Etsy store needs in .env - see README.md's "Etsy setup" section and
+# lib/shipping_app/etsy_store_config.rb for what these are used for.
+# PackPoint itself only *uses* these tokens (and keeps them fresh via
+# EtsyClient); it doesn't run the interactive OAuth handshake, since that
+# needs a browser and a human to click "Allow".
+#
+# Walks through Etsy's OAuth 2.0 Authorization Code + PKCE flow by hand:
+# prints an authorize URL to open in a browser, waits for you to paste back
+# the "code" from the redirect, exchanges it for a token pair, and prints
+# the ENV lines ready to paste into .env.
+#
+# Usage:
+#   ruby bin/etsy_oauth API_KEY SHOP_ID [REDIRECT_URI]
+#
+# API_KEY is the "Keystring" from https://www.etsy.com/developers/your-apps
+# - REDIRECT_URI must already be registered on that app (defaults to
+# http://localhost:3003/callback, a common placeholder for apps that don't
+# run their own callback server - this script doesn't need the redirect to
+# actually load, only the "code" query param in the address bar afterward).
+# SHOP_ID is your shop's numeric id (shown in Shop Manager > Settings >
+# Options, or via GET https://openapi.etsy.com/v3/application/shops?shop_name=yourshopname
+# with an x-api-key header).
+
+require 'securerandom'
+require 'digest'
+require 'base64'
+require 'net/http'
+require 'uri'
+require 'json'
+
+api_key = ARGV[0]
+shop_id = ARGV[1]
+redirect_uri = ARGV[2] || 'http://localhost:3003/callback'
+
+if api_key.to_s.empty? || shop_id.to_s.empty?
+  warn 'Usage: ruby bin/etsy_oauth API_KEY SHOP_ID [REDIRECT_URI]'
+  exit 1
+end
+
+# transactions_r/transactions_w let PackPoint list orders and submit
+# tracking (mark as shipped); shops_r is needed to look up shop info.
+SCOPES = %w[transactions_r transactions_w shops_r].freeze
+
+code_verifier = Base64.urlsafe_encode64(SecureRandom.random_bytes(32)).delete('=')
+code_challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(code_verifier)).delete('=')
+state = SecureRandom.hex(8)
+
+authorize_url = URI('https://www.etsy.com/oauth/connect')
+authorize_url.query = URI.encode_www_form(
+  response_type: 'code',
+  client_id: api_key,
+  redirect_uri: redirect_uri,
+  scope: SCOPES.join(' '),
+  state: state,
+  code_challenge: code_challenge,
+  code_challenge_method: 'S256'
+)
+
+puts '1. Open this URL, log in as the shop owner, and click "Allow Access":'
+puts
+puts authorize_url
+puts
+puts "2. You'll land on #{redirect_uri}?code=...&state=... - it doesn't need to actually load," \
+     " just copy the 'code' value out of the address bar (it's everything after 'code=' and before '&')."
+print "\nPaste the code here: "
+code = $stdin.gets.to_s.strip
+
+if code.empty?
+  warn 'No code entered - aborting.'
+  exit 1
+end
+
+token_params = {
+  'grant_type' => 'authorization_code',
+  'client_id' => api_key,
+  'redirect_uri' => redirect_uri,
+  'code' => code,
+  'code_verifier' => code_verifier
+}
+response = Net::HTTP.post_form(URI('https://api.etsy.com/v3/public/oauth/token'), token_params)
+
+data = begin
+  JSON.parse(response.body)
+rescue JSON::ParserError
+  {}
+end
+
+if data['access_token']
+  puts "\nSuccess! Add these to .env (pick a store id, e.g. 1 - or the next unused one if you " \
+       "already have Etsy stores configured):\n\n"
+  puts 'ETSY_STORE_1_NAME=My Shop'
+  puts "ETSY_STORE_1_SHOP_ID=#{shop_id}"
+  puts "ETSY_STORE_1_API_KEY=#{api_key}"
+  puts "ETSY_STORE_1_ACCESS_TOKEN=#{data['access_token']}"
+  puts "ETSY_STORE_1_REFRESH_TOKEN=#{data['refresh_token']}"
+  puts "# ETSY_STORE_1_RATE_SOURCE=easypost   # or 'etsy' to use Etsy's own postage instead"
+  puts '# ETSY_STORE_1_EASYPOST_FROM_ADDRESS=adr_xxxxxxxx   # only needed if RATE_SOURCE=easypost'
+else
+  warn "\nFailed: HTTP #{response.code} - #{response.body}"
+  exit 1
+end

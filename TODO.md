@@ -14,3 +14,14 @@
       rates to show up alongside USPS/FedEx/UPS in the Check Price picker.
 - [ ] Optionally set `CUSTOMS_SIGNER_NAME` in `.env` - defaults to the
       shipping store's return address name if unset.
+
+## Etsy follow-ups
+
+- [ ] Run `ruby bin/etsy_oauth API_KEY SHOP_ID` for each Etsy shop and add
+      the printed `ETSY_STORE_<id>_*` lines to `.env` - see README.md's
+      "Etsy setup" section.
+- [ ] Decide `RATE_SOURCE` per Etsy shop (`easypost` vs `etsy`) and, if
+      `easypost`, set `ETSY_STORE_<id>_EASYPOST_FROM_ADDRESS`.
+- [ ] For `easypost`-rate shops shipping internationally, add real Etsy SKUs
+      to `config/customs_catalog.yml` alongside the Tindie ones (same file,
+      same format - see the "International shipping" TODO above).

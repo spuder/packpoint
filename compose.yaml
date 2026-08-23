@@ -24,6 +24,18 @@ services:
       - STRIPE_STORE_1_NAME=${STRIPE_STORE_1_NAME}
       - STRIPE_STORE_1_SECRET_KEY=${STRIPE_STORE_1_SECRET_KEY}
       - STRIPE_STORE_1_EASYPOST_FROM_ADDRESS=${STRIPE_STORE_1_EASYPOST_FROM_ADDRESS}
+      # Etsy is optional, same as Stripe above - see README.md's "Etsy
+      # setup" section and .env.sample for what these are/how to get them.
+      # Remember to also register these as Dockhand secrets, same as the
+      # Stripe vars above, or they'll resolve empty and Etsy support will
+      # stay disabled.
+      - ETSY_STORE_1_NAME=${ETSY_STORE_1_NAME}
+      - ETSY_STORE_1_SHOP_ID=${ETSY_STORE_1_SHOP_ID}
+      - ETSY_STORE_1_API_KEY=${ETSY_STORE_1_API_KEY}
+      - ETSY_STORE_1_ACCESS_TOKEN=${ETSY_STORE_1_ACCESS_TOKEN}
+      - ETSY_STORE_1_REFRESH_TOKEN=${ETSY_STORE_1_REFRESH_TOKEN}
+      - ETSY_STORE_1_RATE_SOURCE=${ETSY_STORE_1_RATE_SOURCE}
+      - ETSY_STORE_1_EASYPOST_FROM_ADDRESS=${ETSY_STORE_1_EASYPOST_FROM_ADDRESS}
       - RACK_ENV=production
       - APP_ENV=production
       - DEPLOY_ENV=production
@@ -32,8 +44,16 @@ services:
       - CUPS_HOST=${CUPS_HOST}
     # ports:
     #   - "9292:9292"
+    volumes:
+      # Persists downloaded label files (see /print_label in app.rb) and
+      # refreshed Etsy OAuth tokens (see ShippingApp::EtsyClient) across
+      # container recreation, not just restarts of the same container.
+      - packpoint-cache:/app/cache
     labels:
       - "docktail.service.enable=true"
       - "docktail.service.name=packpoint"
       - "docktail.service.port=9292"
       - "docktail.service.service-port=443"
+
+volumes:
+  packpoint-cache:

@@ -32,9 +32,9 @@
   </div>
 </header>
 
-<% if stripe_warnings&.any? %>
+<% if store_warnings&.any? %>
   <div class="ks-warning-banner">
-    <% stripe_warnings.each do |warning| %>
+    <% store_warnings.each do |warning| %>
       <div class="ks-warning-row">⚠️ <%= warning %></div>
       <% end %>
   </div>
@@ -125,13 +125,15 @@
             </div>
             <div class="ks-label-col">
               <span class="ks-status-pill ks-status-<%= status %>">
-                <% if status=='need' %>
-                  Needs label
-                  <% elsif status=='ready' %>
-                    Label ready
-                    <% else %>
-                      International
-                      <% end %>
+                <% if order.rate_source == 'etsy' %>
+                  Etsy label
+                  <% elsif status=='need' %>
+                    Needs label
+                    <% elsif status=='ready' %>
+                      Label ready
+                      <% else %>
+                        International
+                        <% end %>
               </span>
             </div>
           </div>
@@ -167,18 +169,22 @@
                         <button type="button" class="ks-btn-ghost"
                           onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
                           Slip &rarr;</button>
-                        <% else %>
+                        <% elsif order.store_type=='etsy' %>
                           <button type="button" class="ks-btn-ghost"
-                            onclick="window.open('https://dashboard.stripe.com/payments/<%= order.payment_intent_id %>', '_blank')">View
-                            in Stripe &rarr;</button>
-                          <% end %>
+                            onclick="window.open('https://www.etsy.com/your/orders/sold', '_blank')">View in Etsy
+                            &rarr;</button>
+                          <% else %>
+                            <button type="button" class="ks-btn-ghost"
+                              onclick="window.open('https://dashboard.stripe.com/payments/<%= order.payment_intent_id %>', '_blank')">View
+                              in Stripe &rarr;</button>
+                            <% end %>
                     </div>
               </div>
 
               <div class="ks-detail-box">
                 <div class="ks-detail-box-head">
                   <div class="ks-detail-box-title">Ship To</div>
-                  <% if order.store_type == 'stripe' %>
+                  <% if order.store_type == 'stripe' || order.rate_source == 'etsy' %>
                     <div class="ks-kebab-wrap">
                       <button type="button" class="ks-kebab-btn" aria-label="More actions">&#8942;</button>
                       <div class="ks-kebab-menu" style="display:none;">
@@ -186,15 +192,26 @@
                       </div>
                       <form class="mark-shipped-form" action="/mark_shipped/<%= order.order_number %>" method="post"
                         style="display:none;">
+                        <input type="hidden" name="store_type" value="<%= order.store_type %>">
                         <input type="hidden" name="store_key" value="<%= order.store_key %>">
-                        <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                        <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id if order.store_type == 'stripe' %>">
                         <label class="ks-select-label">Tracking code (bought outside PackPoint)</label>
                         <input class="ks-input" type="text" name="tracking_code" placeholder="Tracking code" required>
-                        <div class="mark-shipped-status" style="display:none;"></div>
-                        <div class="ks-buy-actions-row">
-                          <button type="button" class="ks-btn-outline mark-shipped-cancel">Cancel</button>
-                          <button type="submit" class="ks-btn-primary">Confirm</button>
-                        </div>
+                        <% if order.store_type == 'etsy' %>
+                          <label class="ks-select-label">Carrier</label>
+                          <select class="ks-input" name="carrier">
+                            <option value="usps">USPS</option>
+                            <option value="ups">UPS</option>
+                            <option value="fedex">FedEx</option>
+                            <option value="dhl-express">DHL Express</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <% end %>
+                            <div class="mark-shipped-status" style="display:none;"></div>
+                            <div class="ks-buy-actions-row">
+                              <button type="button" class="ks-btn-outline mark-shipped-cancel">Cancel</button>
+                              <button type="submit" class="ks-btn-primary">Confirm</button>
+                            </div>
                       </form>
                     </div>
                     <% end %>
@@ -221,7 +238,11 @@
                 </div>
 
                 <div class="ks-ship-action">
-                  <% if status=='ready' && label %>
+                  <% if order.rate_source == 'etsy' %>
+                    <div class="ks-hint-box">This store ships with Etsy's own postage - the buyer paid $<%= '%.2f' % order.shipping_cost %>
+                      for shipping. Buy/print the label on Etsy.com, then use &ldquo;Mark as Shipped&rdquo; above
+                      (&#8942;) once you have a tracking code.</div>
+                    <% elsif status=='ready' && label %>
                     <div class="ks-tracking-box">
                       <span class="ks-tracking-label">TRK</span>
                       <span class="ks-tracking-code">

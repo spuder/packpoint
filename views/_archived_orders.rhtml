@@ -1,6 +1,6 @@
-<% if stripe_warnings&.any? %>
+<% if store_warnings&.any? %>
   <div class="ks-warning-banner">
-    <% stripe_warnings.each do |warning| %>
+    <% store_warnings.each do |warning| %>
       <div class="ks-warning-row">⚠️ <%= warning %></div>
       <% end %>
   </div>
@@ -96,11 +96,15 @@
                           <button type="button" class="ks-btn-ghost"
                             onclick="window.open('https://www.tindie.com/orders/print/<%= order.order_number %>/?api_key=<%= api_key %>&username=<%= username %>', '_blank')">View
                             Slip &rarr;</button>
-                          <% else %>
+                          <% elsif order.store_type=='etsy' %>
                             <button type="button" class="ks-btn-ghost"
-                              onclick="window.open('https://dashboard.stripe.com/payments/<%= order.payment_intent_id %>', '_blank')">View
-                              in Stripe &rarr;</button>
-                            <% end %>
+                              onclick="window.open('https://www.etsy.com/your/orders/sold', '_blank')">View in Etsy
+                              &rarr;</button>
+                            <% else %>
+                              <button type="button" class="ks-btn-ghost"
+                                onclick="window.open('https://dashboard.stripe.com/payments/<%= order.payment_intent_id %>', '_blank')">View
+                                in Stripe &rarr;</button>
+                              <% end %>
                       </div>
                 </div>
 

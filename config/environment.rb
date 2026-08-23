@@ -9,6 +9,8 @@ require 'open-uri'
 require 'fileutils'
 require 'timeout'
 require 'time'
+require 'net/http'
+require 'json'
 
 Dir['./lib/**/*.rb'].each { |file| require file }
 

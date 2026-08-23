@@ -67,6 +67,21 @@ module ShippingApp
         puts "No Stripe stores configured (STRIPE_STORE_<id>_SECRET_KEY not set)"
       end
 
+      # Etsy support is optional and can span multiple shops/accounts - see
+      # EtsyStoreConfig for the ETSY_STORE_*_* env var format.
+      set :etsy_stores, EtsyStoreConfig.stores
+      if settings.etsy_stores.any?
+        puts "Configured Etsy stores: #{settings.etsy_stores.map(&:name).join(', ')}"
+        settings.etsy_stores.each do |store|
+          if store.easypost_rates? && store.from_address.to_s.empty?
+            puts "WARNING: ETSY_STORE_#{store.key.upcase}_EASYPOST_FROM_ADDRESS is not set - " \
+                 "buying a label for '#{store.name}' orders will fail (RATE_SOURCE=easypost)"
+          end
+        end
+      else
+        puts "No Etsy stores configured (ETSY_STORE_<id>_API_KEY not set)"
+      end
+
       # Debug: List all available printer names at startup (after Environment.setup)
       begin
         printer_names = Timeout.timeout(CUPS_TIMEOUT_SECONDS) do
@@ -117,15 +132,15 @@ module ShippingApp
       end
 
       # Pulls together unshipped orders from Tindie and every configured
-      # Stripe store into one flat list, each wrapped in a StoreOrder so the
-      # view can render a store badge and buy_label knows where to route
-      # the "mark as shipped" call. Any Stripe store that fails to fetch
-      # (bad key, missing permissions, etc.) is recorded in @stripe_warnings
+      # Stripe/Etsy store into one flat list, each wrapped in a StoreOrder
+      # so the view can render a store badge and buy_label knows where to
+      # route the "mark as shipped" call. Any store that fails to fetch
+      # (bad key, missing permissions, etc.) is recorded in @store_warnings
       # instead of just being logged, so the /orders page actually shows
       # that something's wrong rather than quietly rendering as if that
       # store simply has no orders.
       def fetch_all_orders
-        @stripe_warnings = []
+        @store_warnings = []
 
         tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
         tindie_orders = with_vcr { tindie_api.get_all_orders(false) }
@@ -134,17 +149,19 @@ module ShippingApp
         end
 
         settings.stripe_stores.each { |store| orders.concat(fetch_stripe_orders(store, shipped: false)) }
+        settings.etsy_stores.each { |store| orders.concat(fetch_etsy_orders(store, shipped: false)) }
         orders
       end
 
       # Same idea as fetch_all_orders, but for the (lazily-loaded) archive
       # tab: shipped orders from the last ARCHIVE_WINDOW_DAYS days only.
-      # Stripe supports filtering this server-side (created[gte]); Tindie's
-      # gem doesn't expose a date filter, so that side is fetched in full
-      # and filtered client-side - fine for a bounded, on-demand view, but
-      # worth revisiting if a store's shipped history gets very large.
+      # Stripe/Etsy support filtering this server-side (created[gte]/
+      # min_created); Tindie's gem doesn't expose a date filter, so that
+      # side is fetched in full and filtered client-side - fine for a
+      # bounded, on-demand view, but worth revisiting if a store's shipped
+      # history gets very large.
       def fetch_archived_orders
-        @stripe_warnings ||= []
+        @store_warnings ||= []
         cutoff = Time.now - (ARCHIVE_WINDOW_DAYS * 86400)
 
         tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
@@ -157,11 +174,14 @@ module ShippingApp
         settings.stripe_stores.each do |store|
           orders.concat(fetch_stripe_orders(store, shipped: true, created_after: cutoff))
         end
+        settings.etsy_stores.each do |store|
+          orders.concat(fetch_etsy_orders(store, shipped: true, created_after: cutoff))
+        end
         orders
       end
 
       # Fetches + wraps one Stripe store's orders, recording (not raising)
-      # any Stripe::StripeError into @stripe_warnings - shared by both
+      # any Stripe::StripeError into @store_warnings - shared by both
       # fetch_all_orders and fetch_archived_orders.
       def fetch_stripe_orders(store, shipped:, created_after: nil)
         stripe_orders = ShippingApp::StripeOrdersAPI.new(store.key, store.name, store.secret_key)
@@ -172,12 +192,27 @@ module ShippingApp
       rescue Stripe::StripeError => e
         warning = ShippingApp::StripeErrorFormatter.describe(store.name, e)
         puts "WARNING: #{warning}"
-        (@stripe_warnings ||= []) << warning
+        (@store_warnings ||= []) << warning
         []
       end
 
-      # One tab per store (even Stripe stores with zero unshipped orders
-      # right now), used to render the store tab bar.
+      # Same idea as fetch_stripe_orders, for one Etsy store - recording
+      # (not raising) any ShippingApp::EtsyApiError into @store_warnings.
+      def fetch_etsy_orders(store, shipped:, created_after: nil)
+        etsy_orders = ShippingApp::EtsyOrdersAPI.new(store).get_all_orders(shipped, created_after: created_after)
+        etsy_orders.map do |order|
+          ShippingApp::StoreOrder.new(order, store_type: 'etsy', store_key: store.key,
+                                              store_display_name: store.name, rate_source: store.rate_source)
+        end
+      rescue ShippingApp::EtsyApiError => e
+        warning = "Etsy error (#{store.name}): #{e.message}"
+        puts "WARNING: #{warning}"
+        (@store_warnings ||= []) << warning
+        []
+      end
+
+      # One tab per store (even a store with zero unshipped orders right
+      # now), used to render the store tab bar.
       def store_tabs(orders)
         tabs = [{ key: 'tindie', name: 'Tindie', count: orders.count { |o| o.store_type == 'tindie' } }]
         settings.stripe_stores.each do |store|
@@ -187,6 +222,13 @@ module ShippingApp
             count: orders.count { |o| o.store_type == 'stripe' && o.store_key == store.key }
           }
         end
+        settings.etsy_stores.each do |store|
+          tabs << {
+            key: store.key,
+            name: store.name,
+            count: orders.count { |o| o.store_type == 'etsy' && o.store_key == store.key }
+          }
+        end
         tabs
       end
 
@@ -194,15 +236,29 @@ module ShippingApp
         settings.stripe_stores.find { |store| store.key == store_key }
       end
 
+      def find_etsy_store(store_key)
+        settings.etsy_stores.find { |store| store.key == store_key }
+      end
+
       # Each store ships from its own return address, so a Stripe store's
       # packages don't go out under Tindie's address (or vice versa). See
       # TINDIE_EASYPOST_FROM_ADDRESS / STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS
-      # in .env.sample.
+      # / ETSY_STORE_<id>_EASYPOST_FROM_ADDRESS in .env.sample.
       def find_from_address(store_type, store_key)
         if store_type == 'stripe'
           store = find_stripe_store(store_key)
           raise "Cannot buy label: unknown store_key '#{store_key}'" unless store
           raise "Cannot buy label: no EASYPOST_FROM_ADDRESS configured for Stripe store '#{store_key}'" if store.from_address.to_s.empty?
+
+          store.from_address
+        elsif store_type == 'etsy'
+          store = find_etsy_store(store_key)
+          raise "Cannot buy label: unknown store_key '#{store_key}'" unless store
+          unless store.easypost_rates?
+            raise "Cannot buy label: Etsy store '#{store_key}' is configured for Etsy's own shipping " \
+                  "(ETSY_STORE_#{store_key.upcase}_RATE_SOURCE=etsy) - buy/print the label on Etsy.com, then use \"Mark as Shipped\""
+          end
+          raise "Cannot buy label: no EASYPOST_FROM_ADDRESS configured for Etsy store '#{store_key}'" if store.from_address.to_s.empty?
 
           store.from_address
         else
@@ -304,6 +360,37 @@ module ShippingApp
         puts "WARNING: #{warning}"
         warning
       end
+
+      # Marks an Etsy receipt as shipped by submitting tracking info via
+      # the Etsy API (see ShippingApp::EtsyOrdersAPI#mark_shipped) - unlike
+      # Stripe, Etsy has real order fulfillment state of its own, so this
+      # is the same call whether it's reached from buying a label through
+      # PackPoint/EasyPost or from the manual "Mark as Shipped" form (used
+      # for stores that buy their postage directly on Etsy.com - see
+      # EtsyStoreConfig's RATE_SOURCE). Buying the label (if any) already
+      # succeeded by the time this runs, so a failure here doesn't fail the
+      # request - but it's returned (rather than merely logged) so callers
+      # can surface it to the UI instead of the label appearing to have
+      # shipped fine when Etsy never got updated.
+      def mark_etsy_order_shipped(store_key, receipt_id, label_result, carrier: nil)
+        store = find_etsy_store(store_key)
+        unless store
+          warning = "Cannot mark Etsy order shipped: unknown store_key '#{store_key}'"
+          puts "WARNING: #{warning}"
+          return warning
+        end
+
+        ShippingApp::EtsyOrdersAPI.new(store).mark_shipped(
+          receipt_id,
+          tracking_code: label_result[:tracking_code],
+          carrier_name: carrier
+        )
+        nil
+      rescue ShippingApp::EtsyApiError => e
+        warning = "Etsy error marking #{store_key} order shipped: #{e.message}"
+        puts "WARNING: #{warning}"
+        warning
+      end
     end
 
     get '/orders' do
@@ -326,7 +413,7 @@ module ShippingApp
       erb :orders, locals: {
         orders: unshipped_orders,
         stores: store_tabs(unshipped_orders),
-        stripe_warnings: @stripe_warnings,
+        store_warnings: @store_warnings,
         purchased_labels: purchased_labels,
         username: ENV['TINDIE_USERNAME'],
         api_key: ENV['TINDIE_API_KEY'],
@@ -346,7 +433,7 @@ module ShippingApp
 
       erb :_archived_orders, layout: false, locals: {
         orders: archived_orders,
-        stripe_warnings: @stripe_warnings,
+        store_warnings: @store_warnings,
         username: ENV['TINDIE_USERNAME'],
         api_key: ENV['TINDIE_API_KEY'],
         countries: COUNTRY_FLAGS,
@@ -414,10 +501,17 @@ module ShippingApp
           label_url: result[:label_url]
         }
 
-        stripe_warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id], result) if store_type == 'stripe'
+        # Buying an EasyPost label doesn't write back to the origin store
+        # by itself - tell Stripe/Etsy the order shipped now that it has,
+        # so their own order status doesn't lag behind PackPoint's.
+        origin_store_name, store_warning =
+          case store_type
+          when 'stripe' then ['Stripe', mark_stripe_order_shipped(store_key, params[:payment_intent_id], result)]
+          when 'etsy' then ['Etsy', mark_etsy_order_shipped(store_key, order_number, result, carrier: carrier)]
+          end
 
         response_body = { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }
-        response_body[:warning] = "Label bought, but Stripe wasn't updated: #{stripe_warning}" if stripe_warning
+        response_body[:warning] = "Label bought, but #{origin_store_name} wasn't updated: #{store_warning}" if store_warning
         response_body.to_json
       rescue ShippingApp::ValidationError => e
         status 422
@@ -458,22 +552,30 @@ module ShippingApp
       end
     end
 
-    # Marks a Stripe order shipped without buying a label through PackPoint
-    # - for labels bought out-of-band (e.g. directly in EasyPost). Tindie
-    # has no equivalent: its API is read-only, so there's nowhere to write
-    # this to - see ShippingApp::StripeOrdersAPI#mark_shipped.
+    # Marks a Stripe/Etsy order shipped without buying a label through
+    # PackPoint - for labels bought out-of-band (e.g. directly in EasyPost,
+    # or Etsy's own postage on Etsy.com - see EtsyStoreConfig's
+    # RATE_SOURCE). Tindie has no equivalent: its API is read-only, so
+    # there's nowhere to write this to. Defaults store_type to 'stripe' for
+    # older cached pages that don't post it.
     post '/mark_shipped/:order_number' do
       order_number = params[:order_number]
+      store_type = params[:store_type].to_s.empty? ? 'stripe' : params[:store_type]
       store_key = params[:store_key]
       tracking_code = params[:tracking_code].to_s.strip
-      puts "Marking order #{order_number} shipped (store_key=#{store_key}, payment_intent_id=#{params[:payment_intent_id]})"
+      puts "Marking order #{order_number} shipped (store_type=#{store_type}, store_key=#{store_key}, " \
+           "payment_intent_id=#{params[:payment_intent_id]})"
 
       content_type :json
       if tracking_code.empty?
         status 422
         { success: false, message: 'Tracking code is required' }.to_json
       else
-        warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id], { tracking_code: tracking_code, label_url: nil })
+        warning = if store_type == 'etsy'
+                    mark_etsy_order_shipped(store_key, order_number, { tracking_code: tracking_code }, carrier: params[:carrier])
+                  else
+                    mark_stripe_order_shipped(store_key, params[:payment_intent_id], { tracking_code: tracking_code, label_url: nil })
+                  end
         if warning
           status 422
           { success: false, message: warning }.to_json
