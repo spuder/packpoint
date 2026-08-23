@@ -52,15 +52,22 @@ module ShippingApp
         set :host_authorization, { permitted_hosts: [] }
       end
 
-      # Stripe support is optional and can span multiple stores/accounts -
-      # see StripeStoreConfig for the STRIPE_STORE_*_* env var format.
+      # Tindie is the one store not configured through StripeStoreConfig -
+      # it still defaults to (and today, only ever uses) EasyPost, but
+      # goes through the same StoreShippingConfig/ShippingProviders path as
+      # every Stripe store so switching it later is just an env var change.
+      set :tindie_shipping, StoreShippingConfig.new('TINDIE')
+
+      # Stripe support is optional and can span multiple stores/accounts,
+      # each shipping through its own provider - see StripeStoreConfig and
+      # StoreShippingConfig for the STRIPE_STORE_*_* env var format.
       set :stripe_stores, StripeStoreConfig.stores
       if settings.stripe_stores.any?
         puts "Configured Stripe stores: #{settings.stripe_stores.map(&:name).join(', ')}"
         settings.stripe_stores.each do |store|
-          if store.from_address.to_s.empty?
-            puts "WARNING: STRIPE_STORE_#{store.key.upcase}_EASYPOST_FROM_ADDRESS is not set - " \
-                 "buying a label for '#{store.name}' orders will fail"
+          unless store.shipping.configured?
+            puts "WARNING: store '#{store.name}' ships via '#{store.shipping.provider}' but is missing " \
+                 "#{store.shipping.missing_config_hint} - buying a label for '#{store.name}' orders will fail"
           end
         end
       else
@@ -194,23 +201,32 @@ module ShippingApp
         settings.stripe_stores.find { |store| store.key == store_key }
       end
 
-      # Each store ships from its own return address, so a Stripe store's
-      # packages don't go out under Tindie's address (or vice versa). See
-      # TINDIE_EASYPOST_FROM_ADDRESS / STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS
-      # in .env.sample.
-      def find_from_address(store_type, store_key)
-        if store_type == 'stripe'
-          store = find_stripe_store(store_key)
-          raise "Cannot buy label: unknown store_key '#{store_key}'" unless store
-          raise "Cannot buy label: no EASYPOST_FROM_ADDRESS configured for Stripe store '#{store_key}'" if store.from_address.to_s.empty?
+      # Each store ships through its own provider and its own return
+      # address, so a Stripe store's packages don't go out under Tindie's
+      # address (or vice versa), and a store on ShipStation doesn't touch
+      # EasyPost at all. See StoreShippingConfig / ShippingApp::ShippingProviders
+      # and .env.sample.
+      def shipping_provider_for(store_type, store_key)
+        shipping = if store_type == 'stripe'
+                     store = find_stripe_store(store_key)
+                     raise "Cannot buy label: unknown store_key '#{store_key}'" unless store
 
-          store.from_address
-        else
-          from_address = ENV['TINDIE_EASYPOST_FROM_ADDRESS'].to_s
-          raise 'Cannot buy label: TINDIE_EASYPOST_FROM_ADDRESS is not configured' if from_address.empty?
+                     store.shipping
+                   else
+                     settings.tindie_shipping
+                   end
 
-          from_address
+        unless shipping.configured?
+          raise "Cannot buy label: missing #{shipping.missing_config_hint} for shipping provider '#{shipping.provider}'"
         end
+
+        # Which provider a given store resolves to isn't obvious just from
+        # store_type/store_key (it's an env var - see StoreShippingConfig),
+        # so this is logged on every call rather than left to be inferred
+        # from which downstream API shows the label.
+        puts "Store #{store_type}/#{store_key || 'default'} ships via '#{shipping.provider}'"
+
+        ShippingApp::ShippingProviders.build(shipping)
       end
 
       # Shared by /rate_label and /buy_label, which both post the same
@@ -370,14 +386,14 @@ module ShippingApp
       begin
         customs_items = customs_items_from_params
         require_customs_items!(customs_items)
-        from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.get_rates(order_number, order_data, from_address_id, parcel_override, customs_items: customs_items)
+        provider = shipping_provider_for(store_type, store_key)
+        result = provider.get_rates(order_number, order_data, parcel_override, customs_items: customs_items)
         { success: true }.merge(result).to_json
       rescue ShippingApp::ValidationError => e
         status 422
         { success: false, message: e.message }.to_json
-      rescue EasyPost::Errors::EasyPostError => e
-        puts "EasyPost error rating label for #{order_number}: #{e.class} - #{e.message}"
+      rescue EasyPost::Errors::EasyPostError, ShippingApp::ShippingProviders::CarrierError => e
+        puts "Carrier error rating label for #{order_number}: #{e.class} - #{e.message}"
         status 422
         { success: false, message: e.message }.to_json
       rescue => e
@@ -404,8 +420,8 @@ module ShippingApp
       begin
         customs_items = customs_items_from_params
         require_customs_items!(customs_items)
-        from_address_id = find_from_address(store_type, store_key)
-        result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id, carrier: carrier, customs_items: customs_items)
+        provider = shipping_provider_for(store_type, store_key)
+        result = provider.create_label(order_number, order_data, parcel_override, shipment_id: shipment_id, carrier: carrier, customs_items: customs_items)
 
         # Store the label information in the session
         session[:orders] ||= {}
@@ -422,8 +438,8 @@ module ShippingApp
       rescue ShippingApp::ValidationError => e
         status 422
         { success: false, message: e.message }.to_json
-      rescue EasyPost::Errors::EasyPostError => e
-        puts "EasyPost error buying label for #{order_number}: #{e.class} - #{e.message}"
+      rescue EasyPost::Errors::EasyPostError, ShippingApp::ShippingProviders::CarrierError => e
+        puts "Carrier error buying label for #{order_number}: #{e.class} - #{e.message}"
         status 422
         { success: false, message: e.message }.to_json
       rescue => e
@@ -435,21 +451,24 @@ module ShippingApp
     end
 
     # International addresses frequently fail strict carrier verification
-    # even when they're perfectly deliverable (EasyPost's delivery
+    # even when they're perfectly deliverable (a provider's delivery
     # verification coverage varies a lot by country/region), so this is
-    # feedback for the person buying the label, not a gate - see
-    # ShippingService#verify_address. Address fields are read from the same
-    # posted fields as /rate_label and /buy_label (not re-fetched from
-    # Tindie/Stripe), so what's checked always matches what would actually
-    # be bought.
+    # feedback for the person buying the label, not a gate - see each
+    # provider's #verify_address. Address fields (and store_type/store_key,
+    # so this checks against the same provider a label would actually be
+    # bought through) are read from the same posted fields as /rate_label
+    # and /buy_label (not re-fetched from Tindie/Stripe), so what's checked
+    # always matches what would actually be bought.
     post '/verify_address/:order_number' do
       order_number = params[:order_number]
+      store_type = params[:store_type].to_s.empty? ? 'tindie' : params[:store_type]
+      store_key = params[:store_key]
       order_data = order_data_from_params
       puts "Verifying address for order: #{order_number}"
 
       content_type :json
       begin
-        result = ShippingApp::ShippingService.new.verify_address(order_data)
+        result = shipping_provider_for(store_type, store_key).verify_address(order_data)
         { success: true }.merge(result).to_json
       rescue => e
         puts "ERROR in verify_address: #{e.class} - #{e.message}"

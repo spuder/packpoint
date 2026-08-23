@@ -1,6 +1,9 @@
 module ShippingApp
   # A single Stripe account/store, configured entirely through env vars.
-  StripeStore = Struct.new(:key, :name, :secret_key, :from_address, keyword_init: true)
+  # `shipping` (a StoreShippingConfig) is what decides which carrier
+  # platform - EasyPost, ShipStation, ... - and which return address this
+  # store's orders ship through; see ShippingApp::ShippingProviders.
+  StripeStore = Struct.new(:key, :name, :secret_key, :shipping, keyword_init: true)
 
   # Reads N Stripe stores out of the environment so one PackPoint instance
   # can pull orders from multiple Stripe accounts. Each store is declared
@@ -11,11 +14,15 @@ module ShippingApp
   #   STRIPE_STORE_1_EASYPOST_FROM_ADDRESS=adr_xxxxxxxx
   #   STRIPE_STORE_2_NAME=Side Project
   #   STRIPE_STORE_2_SECRET_KEY=sk_live_yyyyy
-  #   STRIPE_STORE_2_EASYPOST_FROM_ADDRESS=adr_yyyyyyyy
+  #   STRIPE_STORE_2_SHIPPING_PROVIDER=shipstation
+  #   STRIPE_STORE_2_SHIPSTATION_FROM_NAME=Side Project Returns
+  #   STRIPE_STORE_2_SHIPSTATION_FROM_STREET1=123 Main St
+  #   ...
   #
-  # STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS is the EasyPost address ID that
-  # shipping labels for that store's orders should be shipped from. It's
-  # required per store - see ShippingApp::ShippingService.
+  # The shipping provider/address vars are read by StoreShippingConfig -
+  # see that class and .env.sample for the full list. A store with no
+  # STRIPE_STORE_<id>_SHIPPING_PROVIDER set defaults to EasyPost, same as
+  # every store before ShipStation support existed.
   #
   # Stripe support is entirely optional - if no STRIPE_STORE_*_SECRET_KEY
   # vars are set, this simply returns an empty list.
@@ -34,9 +41,13 @@ module ShippingApp
           id = match[:id]
           name = ENV["STRIPE_STORE_#{id}_NAME"].to_s
           name = "Stripe Store #{id}" if name.empty?
-          from_address = ENV["STRIPE_STORE_#{id}_EASYPOST_FROM_ADDRESS"].to_s
 
-          stores << StripeStore.new(key: id.downcase, name: name, secret_key: secret_key, from_address: from_address)
+          stores << StripeStore.new(
+            key: id.downcase,
+            name: name,
+            secret_key: secret_key,
+            shipping: ShippingApp::StoreShippingConfig.new("STRIPE_STORE_#{id}")
+          )
         end.sort_by(&:key)
       end
     end

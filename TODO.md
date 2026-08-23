@@ -1,5 +1,23 @@
 # TODO
 
+## ShipStation (Jurassic Stacks) follow-ups
+
+- [ ] Register a production `SHIPSTATION_API_KEY` secret in Dockhand (the
+      key used while building this integration was the sandbox/test key
+      from the DEV 1Password item - don't reuse it in production) plus the
+      `STRIPE_STORE_1_SHIPSTATION_FROM_*` return-address secrets - see
+      compose.yaml and README.md's "Shipping providers" section.
+- [ ] Connect Jurassic Stacks' real carrier accounts (USPS/FedEx/UPS/DHL)
+      in the ShipStation dashboard if they aren't already - PackPoint
+      quotes/buys through whichever carriers are connected to the
+      ShipStation account automatically (`GET /v2/carriers`), no separate
+      config needed.
+- [ ] Double check `ShippingApp::ShippingProviders::ShipStationProvider::CARRIER_CODE_FAMILIES`
+      against Jurassic Stacks' actual connected carriers once known (it was
+      built/verified against a sandbox account's `stamps_com`/`ups`/`fedex`
+      carrier_codes) - a carrier connected under a `carrier_code` not in
+      that table just won't show up in quotes until the table's extended.
+
 ## International shipping follow-ups
 
 - [ ] Fill in `config/customs_catalog.yml` with real Tindie SKUs (HS tariff

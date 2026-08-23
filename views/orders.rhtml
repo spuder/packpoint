@@ -583,9 +583,10 @@
       });
 
       // Weight unit toggle (oz/g). The visible input holds whatever unit is
-      // currently selected; ShippingService/EasyPost always want ounces, so
-      // the hidden parcel_weight field - the one actually submitted with
-      // the form - is kept in ounces regardless of what's displayed.
+      // currently selected; every shipping provider here always wants
+      // ounces, so the hidden parcel_weight field - the one actually
+      // submitted with the form - is kept in ounces regardless of what's
+      // displayed.
       // Switching units converts the number already typed rather than
       // clearing it, and re-dispatches 'input' on the hidden field so the
       // rate-invalidation listener wired up below still fires on a unit

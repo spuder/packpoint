@@ -1,16 +1,20 @@
 module ShippingApp
   # Builds the draft customs items shown (and made editable) in the
   # international ship panel in views/orders.rhtml, one per product line on
-  # the order. These are what eventually become EasyPost customs_items - see
-  # ShippingService#build_customs_info - but they're built here, at order
-  # render time, so the panel can show/edit them *before* a rate is checked
-  # or a label bought.
+  # the order. These are what eventually become a shipping provider's own
+  # customs_items - see ShippingApp::ShippingProviders::EasyPostProvider#build_customs_info -
+  # but they're built here, at order render time, so the panel can show/edit
+  # them *before* a rate is checked or a label bought.
   #
   # Tindie has no per-product customs fields (see CustomsCatalog), so those
   # items are looked up by SKU/model and flagged `missing: true` when
   # nothing matches, rather than guessing an HS code. Stripe products carry
   # this as native Product metadata (see StripeProduct), so those are
   # rarely missing.
+  #
+  # These items are provider-agnostic - each ShippingApp::ShippingProviders
+  # provider maps them onto its own customs shape (see e.g.
+  # EasyPostProvider#build_customs_items / ShipStationProvider#build_customs).
   class CustomsInfoBuilder
     def self.build(order, catalog: CustomsCatalog.instance)
       new(order, catalog).build

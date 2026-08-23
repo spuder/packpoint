@@ -1,11 +1,12 @@
 module ShippingApp
-    # Raised for our own request-shape problems (e.g. an international buy
-    # with no customs items) - as opposed to EasyPost::Errors::EasyPostError,
-    # which covers the carrier/EasyPost API rejecting a well-formed request.
-    # app.rb maps this to a 422, same as an EasyPost error.
-    class ValidationError < StandardError; end
-
-    class ShippingService
+  module ShippingProviders
+    # EasyPost (https://www.easypost.com) - PackPoint's original (and still
+    # default) shipping provider, and the only one Tindie orders ship
+    # through - see ShippingProviders.build / README.md. One EasyPost
+    # account per PackPoint instance (EASYPOST_API_KEY); what varies per
+    # store is only the return address, given at construction time as an
+    # EasyPost address id (adr_...) - see StoreShippingConfig.
+    class EasyPostProvider
       # Openspool orders have always shipped in this box, so it's still the
       # default when the buy form doesn't supply parcel dimensions (i.e. the
       # Openspool case, where the UI doesn't ask for them - see orders.rhtml).
@@ -16,31 +17,20 @@ module ShippingApp
         weight: 5
       }.freeze
 
-      # Carrier families quoted in the buy window's price check, and the
-      # only ones create_label will buy from. USPS is first/default - see
-      # cheapest_rate. "Family" because a carrier account's actual name on
-      # EasyPost isn't necessarily the bare carrier name - e.g. this
-      # account's rates come back as carrier "FedExDefault" / "UPSDAP", not
-      # "FedEx" / "UPS" - so rates are matched by prefix, not exact string.
-      # DHL only has rates on international shipments in practice, but it's
-      # left in this one list rather than split out - quote() already
-      # tolerates a carrier having no rate for a given shipment (see
-      # log_rate_gaps), so a domestic quote just quietly won't include it.
-      QUOTED_CARRIERS = %w[usps fedex ups dhl].freeze
-
       # contents_type EasyPost puts on every customs form this app
       # generates - shipments here are always store orders, never gifts,
       # returns, samples, etc.
       DEFAULT_CONTENTS_TYPE = 'merchandise'.freeze
 
-      def initialize
-        @client = create_client
+      def initialize(from_address_id)
+        @from_address_id = from_address_id
+        @client = EasyPost::Client.new(api_key: ENV['EASYPOST_API_KEY'])
       end
 
       # Creates the shipment (which is how EasyPost computes rates) without
       # buying a label, so the buy window can show a price before the user
       # commits. Returns the shipment id (to buy later via create_label's
-      # shipment_id:) plus each QUOTED_CARRIERS carrier's cheapest rate -
+      # shipment_id:) plus each CARRIER_FAMILIES carrier's cheapest rate -
       # carriers with no rate for this shipment (unsupported service,
       # oversized/overweight, etc.) are just omitted.
       #
@@ -49,9 +39,9 @@ module ShippingApp
       # customs_items, if given, is an Array of Hashes (see
       # build_customs_items) and triggers a customs form on the shipment -
       # see create_shipment.
-      def get_rates(order_number, order_data, from_address_id, parcel_override = nil, customs_items: nil)
-        shipment = create_shipment(order_number, order_data, from_address_id, parcel_override, customs_items)
-        rates = QUOTED_CARRIERS.filter_map { |family| quote(shipment, family) }
+      def get_rates(order_number, order_data, parcel_override = nil, customs_items: nil)
+        shipment = create_shipment(order_number, order_data, parcel_override, customs_items)
+        rates = CARRIER_FAMILIES.filter_map { |family| quote(shipment, family) }
         log_rate_gaps(shipment, rates)
         { shipment_id: shipment.id, rates: rates }
       end
@@ -63,9 +53,9 @@ module ShippingApp
       # charged matches the price already shown to the user, and
       # order_data/parcel_override/customs_items are ignored (the customs
       # form was already attached when that shipment was created). carrier
-      # picks which of QUOTED_CARRIERS to buy from - defaults to USPS.
-      def create_label(order_number, order_data, from_address_id, parcel_override = nil, shipment_id: nil, carrier: 'usps', customs_items: nil)
-        shipment = shipment_id ? @client.shipment.retrieve(shipment_id) : create_shipment(order_number, order_data, from_address_id, parcel_override, customs_items)
+      # picks which of CARRIER_FAMILIES to buy from - defaults to USPS.
+      def create_label(order_number, order_data, parcel_override = nil, shipment_id: nil, carrier: 'usps', customs_items: nil)
+        shipment = shipment_id ? @client.shipment.retrieve(shipment_id) : create_shipment(order_number, order_data, parcel_override, customs_items)
         buy_shipment(shipment, carrier)
       end
 
@@ -101,7 +91,9 @@ module ShippingApp
 
       # Matches shipment.rates by whether the rate's actual carrier name
       # (e.g. "FedExDefault", "UPSDAP") starts with the family we're
-      # quoting (e.g. "fedex", "ups") - see QUOTED_CARRIERS comment.
+      # quoting (e.g. "fedex", "ups") - carrier accounts' actual names on
+      # EasyPost aren't necessarily the bare carrier name, so rates are
+      # matched by prefix, not exact string.
       def cheapest_rate(shipment, family)
         Array(shipment.rates)
           .select { |rate| rate.carrier.to_s.downcase.start_with?(family) }
@@ -110,11 +102,11 @@ module ShippingApp
 
       # shipment.messages is where EasyPost puts the carrier's own
       # explanation for a missing rate (bad credentials, weight/size limits,
-      # service not enabled, etc.) - logged whenever a QUOTED_CARRIERS entry
-      # comes back empty, so "why didn't FedEx/UPS show up" is answered in
-      # the logs instead of just silently disappearing.
+      # service not enabled, etc.) - logged whenever a CARRIER_FAMILIES
+      # entry comes back empty, so "why didn't FedEx/UPS show up" is
+      # answered in the logs instead of just silently disappearing.
       def log_rate_gaps(shipment, rates)
-        missing = QUOTED_CARRIERS - rates.map { |r| r[:carrier] }
+        missing = CARRIER_FAMILIES - rates.map { |r| r[:carrier] }
         return if missing.empty?
 
         puts "No rate for #{missing.join(', ')} on shipment #{shipment.id}:"
@@ -123,12 +115,8 @@ module ShippingApp
         end
       end
 
-      def create_client
-        EasyPost::Client.new(api_key: ENV['EASYPOST_API_KEY'])
-      end
-
-      def create_shipment(order_number, order_data, from_address_id, parcel_override, customs_items_params)
-        from_address = retrieve_from_address(from_address_id)
+      def create_shipment(order_number, order_data, parcel_override, customs_items_params)
+        from_address = retrieve_from_address
         parcel = build_parcel(parcel_override)
         items = Array(customs_items_params)
 
@@ -226,8 +214,8 @@ module ShippingApp
         }
       end
 
-      def retrieve_from_address(from_address_id)
-        @client.address.retrieve(from_address_id)
+      def retrieve_from_address
+        @client.address.retrieve(@from_address_id)
       end
 
       def build_parcel(parcel_override)
@@ -238,7 +226,9 @@ module ShippingApp
       end
 
       def buy_shipment(shipment, carrier)
+        puts "EasyPost: buying #{carrier} label for shipment #{shipment.id}"
         bought_shipment = @client.shipment.buy(shipment.id, rate: pick_rate(shipment, carrier))
+        puts "EasyPost: bought label, tracking_code=#{bought_shipment.tracking_code}"
         {
           tracking_code: bought_shipment.tracking_code,
           label_url: bought_shipment.postage_label.label_url
@@ -258,3 +248,4 @@ module ShippingApp
       end
     end
   end
+end
