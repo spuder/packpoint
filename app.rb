@@ -131,8 +131,7 @@ module ShippingApp
       def fetch_all_orders
         @stripe_warnings = []
 
-        tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
-        tindie_orders = with_vcr { tindie_api.get_all_orders(false) }
+        tindie_orders = fetch_tindie_orders(false)
         orders = tindie_orders.map do |order|
           ShippingApp::StoreOrder.new(order, store_type: 'tindie', store_key: 'tindie', store_display_name: 'Tindie')
         end
@@ -151,9 +150,7 @@ module ShippingApp
         @stripe_warnings ||= []
         cutoff = Time.now - (ARCHIVE_WINDOW_DAYS * 86400)
 
-        tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
-        tindie_orders = with_vcr { tindie_api.get_all_orders(true) }
-        tindie_orders = tindie_orders.select { |order| order.date.to_time >= cutoff }
+        tindie_orders = fetch_tindie_orders(true).select { |order| order.date.to_time >= cutoff }
         orders = tindie_orders.map do |order|
           ShippingApp::StoreOrder.new(order, store_type: 'tindie', store_key: 'tindie', store_display_name: 'Tindie')
         end
@@ -162,6 +159,25 @@ module ShippingApp
           orders.concat(fetch_stripe_orders(store, shipped: true, created_after: cutoff))
         end
         orders
+      end
+
+      # Fetches + wraps Tindie's orders, recording (not raising) any failure
+      # into @stripe_warnings - same isolation as fetch_stripe_orders below,
+      # so a Tindie problem doesn't take the whole page down with it. In
+      # particular, with_vcr's cassette is recorded with record: :once, so
+      # any request shape it doesn't already have an interaction for (e.g.
+      # the archive's get_all_orders(true) if only the unshipped listing's
+      # been recorded) raises VCR::Errors::UnhandledHTTPRequestError in
+      # development rather than hitting the real API - this turns that into
+      # a warning banner instead of a 500 that also hides Stripe's orders.
+      def fetch_tindie_orders(shipped)
+        tindie_api = TindieApi::TindieOrdersAPI.new(ENV['TINDIE_USERNAME'], ENV['TINDIE_API_KEY'])
+        with_vcr { tindie_api.get_all_orders(shipped) }
+      rescue => e
+        warning = "Tindie error: #{e.class} - #{e.message}"
+        puts "WARNING: #{warning}"
+        (@stripe_warnings ||= []) << warning
+        []
       end
 
       # Fetches + wraps one Stripe store's orders, recording (not raising)
@@ -279,15 +295,13 @@ module ShippingApp
 
       # Marks a Stripe order as shipped via the Stripe API (PaymentIntent
       # metadata - see ShippingApp::StripeOrdersAPI for why it's the
-      # PaymentIntent and not the Checkout Session). Shared by /confirm_shipped
-      # (the normal path - a label was just bought through PackPoint) and
-      # /mark_shipped (a label bought entirely outside PackPoint, tracking
-      # code pasted in by hand). A failure here doesn't fail the request that
+      # PaymentIntent and not the Checkout Session). Used by /confirm_shipped
+      # - a label bought through PackPoint or a tracking/carrier/email typed
+      # in by hand for one bought elsewhere (see the kebab-menu form in
+      # views/orders.rhtml). A failure here doesn't fail the request that
       # called it - but it's returned (rather than merely logged) so callers
       # can surface it to the UI instead of appearing to have shipped fine
-      # when Stripe never got updated. Doesn't touch OrderStatusNotifier
-      # itself - see /confirm_shipped, the only caller that has a carrier to
-      # report and so the only one that notifies the store's webhook.
+      # when Stripe never got updated.
       def mark_stripe_order_shipped(store_key, payment_intent_id, label_result)
         store = find_stripe_store(store_key)
         unless store
@@ -304,7 +318,9 @@ module ShippingApp
         ShippingApp::StripeOrdersAPI.new(store.key, store.name, store.secret_key).mark_shipped(
           payment_intent_id,
           tracking_code: label_result[:tracking_code],
-          label_url: label_result[:label_url]
+          label_url: label_result[:label_url],
+          carrier: label_result[:carrier],
+          tracking_url: label_result[:tracking_url]
         )
         nil
       rescue Stripe::StripeError => e
@@ -476,49 +492,30 @@ module ShippingApp
       end
     end
 
-    # Marks a Stripe order shipped without buying a label through PackPoint
-    # - for labels bought out-of-band (e.g. directly in EasyPost). Tindie
-    # has no equivalent: its API is read-only, so there's nowhere to write
-    # this to - see ShippingApp::StripeOrdersAPI#mark_shipped. No carrier is
-    # known here (nothing was bought through PackPoint to derive one from),
-    # so unlike /confirm_shipped this never notifies OrderStatusNotifier -
-    # it only updates Stripe.
-    post '/mark_shipped/:order_number' do
-      order_number = params[:order_number]
-      store_key = params[:store_key]
-      tracking_code = params[:tracking_code].to_s.strip
-      puts "Marking order #{order_number} shipped (store_key=#{store_key}, payment_intent_id=#{params[:payment_intent_id]})"
-
-      content_type :json
-      if tracking_code.empty?
-        status 422
-        { success: false, message: 'Tracking code is required' }.to_json
-      else
-        warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id], { tracking_code: tracking_code, label_url: nil })
-        if warning
-          status 422
-          { success: false, message: warning }.to_json
-        else
-          { success: true }.to_json
-        end
-      end
-    end
-
-    # The normal "mark as shipped" path: confirms a label that was just
-    # bought through PackPoint (/buy_label) is actually shipping, updates
-    # Stripe, and - unlike /mark_shipped above - notifies the store's
-    # order-status webhook (see ShippingApp::OrderStatusNotifier), since this
-    # is the one path that always has a real carrier (see
-    # ShippingService#buy_shipment). tracking_code is editable in the UI
-    # (rarely needed - defaults to what was actually bought), so it's read
+    # Marks a Stripe order shipped and notifies the store's order-status
+    # webhook (see ShippingApp::OrderStatusNotifier). Two UIs post here (see
+    # views/orders.rhtml): the normal path, confirming a label just bought
+    # through PackPoint (carrier/tracking/email pre-filled from that
+    # purchase - see ShippingService#buy_shipment), and the kebab-menu
+    # "Mark as Shipped..." form for a label bought entirely outside
+    # PackPoint (e.g. directly in EasyPost), where all three are typed in by
+    # hand instead - Tindie has no equivalent since its API is read-only.
+    # Either way tracking_code is editable/required in the UI, so it's read
     # from params rather than re-derived from the session.
     post '/confirm_shipped/:order_number' do
       order_number = params[:order_number]
       store_key = params[:store_key]
       tracking_code = params[:tracking_code].to_s.strip
       recipient_email = params[:email].to_s.strip
+      carrier = params[:carrier].to_s.strip
       label_url = params[:label_url].to_s.empty? ? nil : params[:label_url]
-      puts "Confirming order #{order_number} shipped (store_key=#{store_key}, carrier=#{params[:carrier]}, payment_intent_id=#{params[:payment_intent_id]})"
+      # The normal buy flow always sends its own tracking_url (from
+      # ShippingService#buy_shipment); the Archive tab's "Resend Shipped
+      # Email" (see views/_archived_orders.rhtml) only has carrier +
+      # tracking code typed in by hand, so this fills in the same direct
+      # carrier tracking link either way.
+      tracking_url = params[:tracking_url].to_s.empty? ? ShippingApp::CarrierTrackingUrl.build(carrier, tracking_code) : params[:tracking_url]
+      puts "Confirming order #{order_number} shipped (store_key=#{store_key}, carrier=#{carrier}, payment_intent_id=#{params[:payment_intent_id]})"
 
       content_type :json
       if tracking_code.empty?
@@ -533,7 +530,8 @@ module ShippingApp
         { success: false, message: 'Recipient email is required' }.to_json
       else
         warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id],
-                                             { tracking_code: tracking_code, label_url: label_url })
+                                             { tracking_code: tracking_code, label_url: label_url,
+                                               carrier: carrier.empty? ? nil : carrier, tracking_url: tracking_url })
         if warning
           status 422
           { success: false, message: warning }.to_json
@@ -543,9 +541,9 @@ module ShippingApp
             store: store,
             order_number: order_number,
             recipient_email: recipient_email,
-            carrier: params[:carrier],
+            carrier: carrier,
             tracking_code: tracking_code,
-            tracking_url: params[:tracking_url]
+            tracking_url: tracking_url
           ) if store
           { success: true }.to_json
         end
@@ -560,6 +558,7 @@ module ShippingApp
     post '/confirm_shipped/:order_number/preview' do
       order_number = params[:order_number]
       store = find_stripe_store(params[:store_key])
+      tracking_url = params[:tracking_url].to_s.empty? ? ShippingApp::CarrierTrackingUrl.build(params[:carrier], params[:tracking_code]) : params[:tracking_url]
 
       content_type :json
       if store
@@ -569,7 +568,7 @@ module ShippingApp
           recipient_email: params[:email],
           carrier: params[:carrier],
           tracking_code: params[:tracking_code],
-          tracking_url: params[:tracking_url]
+          tracking_url: tracking_url
         )
         { success: true }.merge(preview).to_json
       else

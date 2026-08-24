@@ -67,7 +67,7 @@ module ShippingApp
   class StripeOrder
     attr_reader :json_parsed, :date, :date_shipped, :products, :shipped, :order_number,
                 :recipient_email, :recipient_phone, :address_dict, :address_str,
-                :payment_intent_id, :tracking_code, :tracking_url
+                :payment_intent_id, :tracking_code, :tracking_url, :carrier
 
     # How many trailing characters of the session id to show when there's
     # no shorter identifier to fall back on (see #short_order_number).
@@ -89,6 +89,7 @@ module ShippingApp
       @shipped = metadata['fulfillment_status'] == 'shipped'
       @tracking_code = metadata['tracking_code']
       @tracking_url = metadata['tracking_url']
+      @carrier = metadata['carrier']
       @date_shipped = metadata['shipped_at'] && Time.parse(metadata['shipped_at'])
 
       build_address(session, country_names)

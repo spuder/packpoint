@@ -142,6 +142,54 @@
                               <% end %>
                         </div>
                         <% end %>
+
+                          <% if order.store_type == 'stripe' %>
+                            <!-- For orders shipped before this app tracked carrier/tracking_url
+                                 (or where the record on file is just wrong) - lets the operator
+                                 correct any of these and re-fire the order-status webhook without
+                                 re-buying a label or touching the tracking metadata above except
+                                 to fix it. Same /confirm_shipped endpoint and .confirm-shipped-form
+                                 wiring as the main table's "Mark as Shipped" - see
+                                 bindConfirmShippedForms in orders.rhtml's script block. -->
+                            <div class="ks-hint-box">Resend shipped notification</div>
+                            <form class="confirm-shipped-form" action="/confirm_shipped/<%= order.order_number %>"
+                              method="post">
+                              <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                              <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                              <div class="ks-tracking-box">
+                                <span class="ks-tracking-label">CARRIER</span>
+                                <select class="ks-tracking-code-input confirm-carrier-field" name="carrier" required>
+                                  <option value="" disabled <%= 'selected' if order.carrier.to_s.empty? %>>Select
+                                    carrier</option>
+                                  <option value="usps" <%= 'selected' if order.carrier.to_s.downcase == 'usps' %>>USPS
+                                  </option>
+                                  <option value="fedex" <%= 'selected' if order.carrier.to_s.downcase == 'fedex' %>>
+                                    FedEx</option>
+                                  <option value="ups" <%= 'selected' if order.carrier.to_s.downcase == 'ups' %>>UPS
+                                  </option>
+                                  <option value="dhl" <%= 'selected' if order.carrier.to_s.downcase == 'dhl' %>>DHL
+                                  </option>
+                                </select>
+                              </div>
+                              <div class="ks-tracking-box">
+                                <span class="ks-tracking-label">TRK</span>
+                                <input class="ks-tracking-code-input confirm-tracking-code-field" type="text"
+                                  name="tracking_code" value="<%= order.tracking_code %>" required>
+                              </div>
+                              <div class="ks-tracking-box">
+                                <span class="ks-tracking-label">EMAIL</span>
+                                <input class="ks-tracking-code-input confirm-email-field" type="text" name="email"
+                                  value="<%= order.recipient_email %>" placeholder="customer@example.com">
+                              </div>
+                              <div class="ks-buy-actions-row">
+                                <button type="submit" class="ks-btn-primary confirm-shipped-btn">Resend Shipped
+                                  Email</button>
+                                <button type="button" class="ks-btn-outline confirm-shipped-info-btn">Info</button>
+                              </div>
+                              <div class="confirm-shipped-status mark-shipped-status" style="display:none;"></div>
+                              <pre class="confirm-shipped-preview" style="display:none;"></pre>
+                            </form>
+                            <% end %>
                   </div>
                 </div>
               </div>

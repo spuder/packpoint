@@ -239,18 +239,6 @@ module ShippingApp
         parcel_override.slice(*required)
       end
 
-      # Direct carrier tracking pages, keyed by the same QUOTED_CARRIERS
-      # family names - used instead of EasyPost's own tracker.public_url
-      # (which redirects through an easypost.com-branded page) so a customer
-      # clicking "Track your package" lands on USPS/FedEx/UPS/DHL's own
-      # site, not EasyPost's.
-      CARRIER_TRACKING_URL_TEMPLATES = {
-        'usps' => 'https://tools.usps.com/go/TrackConfirmAction?tLabels=%s',
-        'fedex' => 'https://www.fedex.com/fedextrack/?trknbr=%s',
-        'ups' => 'https://www.ups.com/track?tracknum=%s',
-        'dhl' => 'https://www.dhl.com/us-en/home/tracking.html?tracking-id=%s'
-      }.freeze
-
       # carrier/tracking_url here are the actual outcome of the purchase, not
       # an echo of what was requested - pick_rate can silently fall back to a
       # different carrier family than asked for (see its comment), so this is
@@ -267,7 +255,7 @@ module ShippingApp
           tracking_code: bought_shipment.tracking_code,
           label_url: bought_shipment.postage_label.label_url,
           carrier: family,
-          tracking_url: carrier_tracking_url(family, bought_shipment.tracking_code)
+          tracking_url: ShippingApp::CarrierTrackingUrl.build(family, bought_shipment.tracking_code)
         }
       end
 
@@ -277,13 +265,6 @@ module ShippingApp
       # cheapest_rate, just run in the other direction once a rate is chosen.
       def carrier_family(raw_carrier)
         QUOTED_CARRIERS.find { |family| raw_carrier.to_s.downcase.start_with?(family) } || raw_carrier.to_s.downcase
-      end
-
-      def carrier_tracking_url(carrier, tracking_code)
-        template = CARRIER_TRACKING_URL_TEMPLATES[carrier.to_s.downcase]
-        return nil if template.nil? || tracking_code.to_s.empty?
-
-        format(template, URI.encode_www_form_component(tracking_code))
       end
 
       # The requested carrier family's cheapest rate - but if this shipment

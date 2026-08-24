@@ -184,20 +184,43 @@
                       <div class="ks-kebab-menu" style="display:none;">
                         <button type="button" class="ks-kebab-item mark-shipped-toggle">Mark as Shipped&hellip;</button>
                       </div>
-                      <form class="mark-shipped-form" action="/mark_shipped/<%= order.order_number %>" method="post"
-                        style="display:none;">
+                      <!-- Label bought outside PackPoint (e.g. directly in EasyPost) - unlike the
+                           post-buy confirm-shipped-form below, nothing here is known automatically,
+                           so carrier/tracking/email are all typed in by hand. Otherwise the same
+                           .confirm-shipped-form wiring (bindConfirmShippedForms) and /confirm_shipped
+                           endpoint as everywhere else - see the class list below. -->
+                      <form class="mark-shipped-form confirm-shipped-form" action="/confirm_shipped/<%= order.order_number %>"
+                        method="post" style="display:none;">
                         <input type="hidden" name="store_key" value="<%= order.store_key %>">
                         <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
-                        <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
-                        <input type="hidden" name="email"
-                          value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
-                        <label class="ks-select-label">Tracking code (bought outside PackPoint)</label>
-                        <input class="ks-input" type="text" name="tracking_code" placeholder="Tracking code" required>
-                        <div class="mark-shipped-status" style="display:none;"></div>
+                        <div class="ks-hint-box">Label bought outside PackPoint</div>
+                        <div class="ks-tracking-box">
+                          <span class="ks-tracking-label">CARRIER</span>
+                          <select class="ks-tracking-code-input confirm-carrier-field" name="carrier" required>
+                            <option value="" disabled selected>Select carrier</option>
+                            <option value="usps">USPS</option>
+                            <option value="fedex">FedEx</option>
+                            <option value="ups">UPS</option>
+                            <option value="dhl">DHL</option>
+                          </select>
+                        </div>
+                        <div class="ks-tracking-box">
+                          <span class="ks-tracking-label">TRK</span>
+                          <input class="ks-tracking-code-input confirm-tracking-code-field" type="text"
+                            name="tracking_code" required>
+                        </div>
+                        <div class="ks-tracking-box">
+                          <span class="ks-tracking-label">EMAIL</span>
+                          <input class="ks-tracking-code-input confirm-email-field" type="text" name="email"
+                            value="<%= order.recipient_email %>" placeholder="customer@example.com">
+                        </div>
+                        <div class="confirm-shipped-status mark-shipped-status" style="display:none;"></div>
                         <div class="ks-buy-actions-row">
                           <button type="button" class="ks-btn-outline mark-shipped-cancel">Cancel</button>
-                          <button type="submit" class="ks-btn-primary">Confirm</button>
+                          <button type="submit" class="ks-btn-primary confirm-shipped-btn">Mark as Shipped</button>
+                          <button type="button" class="ks-btn-outline confirm-shipped-info-btn">Info</button>
                         </div>
+                        <pre class="confirm-shipped-preview" style="display:none;"></pre>
                       </form>
                     </div>
                     <% end %>
@@ -243,8 +266,8 @@
                            already known (see ShippingService#buy_shipment) and just need
                            confirming, not re-entering. Separate from the kebab-menu
                            "Mark as Shipped..." form above, which is for labels bought outside
-                           PackPoint and has no carrier to report - see /confirm_shipped vs
-                           /mark_shipped in app.rb. -->
+                           PackPoint - same /confirm_shipped endpoint, just with carrier/tracking/
+                           email typed in by hand instead of pre-filled. -->
                       <form class="confirm-shipped-form" action="/confirm_shipped/<%= order.order_number %>"
                         method="post">
                         <input type="hidden" name="store_key" value="<%= order.store_key %>">
@@ -548,6 +571,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
       bindExpandableRows(document);
+      bindConfirmShippedForms(document);
 
       // International orders: keep the hidden customs_items field (JSON)
       // in sync with the editable description/HS code/origin/qty/value
@@ -701,9 +725,18 @@
       // in place on success (tracking field read-only, button disabled)
       // rather than reloading, since the order stays visible in the
       // unshipped list until the next real page load either way.
-      document.querySelectorAll('.confirm-shipped-form').forEach(function (form) {
+      //
+      // Shared by the main table (bound once on load) and the Archive tab's
+      // "Resend Shipped Email" form (re-bound each time its rows are
+      // fetched/replaced, same as bindExpandableRows above) - both post to
+      // the same /confirm_shipped endpoint, just with different starting
+      // field values (a fresh buy's vs. hand-typed carrier/tracking/email
+      // for an order shipped before this app tracked any of that).
+      function bindConfirmShippedForms(root) {
+        root.querySelectorAll('.confirm-shipped-form').forEach(function (form) {
         var trackingInput = form.querySelector('.confirm-tracking-code-field');
         var emailInput = form.querySelector('.confirm-email-field');
+        var carrierField = form.querySelector('.confirm-carrier-field');
         var submitBtn = form.querySelector('.confirm-shipped-btn');
         var statusBox = form.querySelector('.confirm-shipped-status');
 
@@ -741,6 +774,12 @@
               }
               trackingInput.readOnly = true;
               emailInput.readOnly = true;
+              // The main table's carrier field is a hidden input (always
+              // accurate, set from the buy response); the Archive tab's
+              // "Resend Shipped Email" uses a visible <select> instead,
+              // which doesn't support readOnly - disabled is the equivalent
+              // lock for a <select>, and a no-op either way on a hidden input.
+              if (carrierField) carrierField.disabled = true;
               submitBtn.textContent = 'Shipped ✓';
               statusBox.textContent = 'Marked as shipped.';
               statusBox.classList.add('mark-shipped-status-ok');
@@ -802,6 +841,7 @@
             });
         });
       });
+      }
 
       // Weight unit toggle (oz/g). The visible input holds whatever unit is
       // currently selected; ShippingService/EasyPost always want ounces, so
@@ -936,10 +976,11 @@
       });
 
       // "Mark as Shipped" kebab menu (Stripe orders only) - for labels
-      // bought outside PackPoint (e.g. directly in EasyPost). Writes real
-      // fulfillment metadata to the Checkout Session via /mark_shipped; the
-      // order drops off the unshipped list on next load, so a full reload
-      // on success is simpler than patching the row in place.
+      // bought outside PackPoint (e.g. directly in EasyPost). Just the
+      // open/close/cancel chrome around the form here - submission itself
+      // (and its Info preview) is handled by bindConfirmShippedForms, same
+      // as every other .confirm-shipped-form, since this one posts to
+      // /confirm_shipped too now that it collects carrier/tracking/email.
       document.querySelectorAll('.ks-kebab-wrap').forEach(function (wrap) {
         var kebabBtn = wrap.querySelector('.ks-kebab-btn');
         var menu = wrap.querySelector('.ks-kebab-menu');
@@ -947,8 +988,7 @@
         var form = wrap.querySelector('.mark-shipped-form');
         var cancelBtn = wrap.querySelector('.mark-shipped-cancel');
         var statusBox = wrap.querySelector('.mark-shipped-status');
-        var trackingInput = form.querySelector('input[name="tracking_code"]');
-        var submitBtn = form.querySelector('button[type="submit"]');
+        var carrierSelect = form.querySelector('.confirm-carrier-field');
 
         function closeAll() {
           menu.style.display = 'none';
@@ -966,50 +1006,16 @@
           e.stopPropagation();
           menu.style.display = 'none';
           form.style.display = 'block';
-          trackingInput.focus();
+          carrierSelect.focus();
         });
 
         cancelBtn.addEventListener('click', function (e) {
           e.stopPropagation();
           closeAll();
-          trackingInput.value = '';
           statusBox.style.display = 'none';
         });
 
         form.addEventListener('click', function (e) { e.stopPropagation(); });
-
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          statusBox.className = 'mark-shipped-status';
-          statusBox.style.display = 'none';
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Saving…';
-
-          fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          })
-            .then(parseJsonResponse)
-            .then(function (result) {
-              var data = result.data;
-              if (!result.ok || data.success === false) {
-                throw new Error(data.message || 'Failed to mark as shipped');
-              }
-              statusBox.textContent = 'Marked as shipped. Reloading…';
-              statusBox.classList.add('mark-shipped-status-ok');
-              statusBox.style.display = 'block';
-              setTimeout(function () { window.location.reload(); }, 800);
-            })
-            .catch(function (error) {
-              console.error('Error:', error);
-              statusBox.textContent = error.message;
-              statusBox.classList.add('mark-shipped-status-error');
-              statusBox.style.display = 'block';
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Confirm';
-            });
-        });
       });
 
       // Close any open kebab menu/form when clicking elsewhere on the page.
@@ -1074,6 +1080,7 @@
           .then(function (html) {
             archiveContent.innerHTML = html;
             bindExpandableRows(archiveContent);
+            bindConfirmShippedForms(archiveContent);
             archiveLoaded = true;
             archiveRefresh.style.display = 'inline-block';
           })
