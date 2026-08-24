@@ -1,6 +1,11 @@
 module ShippingApp
   # A single Stripe account/store, configured entirely through env vars.
-  StripeStore = Struct.new(:key, :name, :secret_key, :from_address, keyword_init: true)
+  # order_status_webhook_url / order_status_webhook_secret are optional -
+  # see ShippingApp::OrderStatusNotifier, which skips (rather than fails)
+  # notifying a store that hasn't configured them.
+  StripeStore = Struct.new(:key, :name, :secret_key, :from_address,
+                            :order_status_webhook_url, :order_status_webhook_secret,
+                            keyword_init: true)
 
   # Reads N Stripe stores out of the environment so one PackPoint instance
   # can pull orders from multiple Stripe accounts. Each store is declared
@@ -16,6 +21,12 @@ module ShippingApp
   # STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS is the EasyPost address ID that
   # shipping labels for that store's orders should be shipped from. It's
   # required per store - see ShippingApp::ShippingService.
+  #
+  # STRIPE_STORE_<id>_ORDER_STATUS_WEBHOOK_URL / _SECRET are optional, and
+  # only used for Stripe stores right now (Tindie's API is read-only - see
+  # StripeOrdersAPI#mark_shipped and ShippingApp::OrderStatusNotifier). The
+  # same per-store-id pattern leaves room to add other store types (e.g.
+  # Etsy) later.
   #
   # Stripe support is entirely optional - if no STRIPE_STORE_*_SECRET_KEY
   # vars are set, this simply returns an empty list.
@@ -35,8 +46,12 @@ module ShippingApp
           name = ENV["STRIPE_STORE_#{id}_NAME"].to_s
           name = "Stripe Store #{id}" if name.empty?
           from_address = ENV["STRIPE_STORE_#{id}_EASYPOST_FROM_ADDRESS"].to_s
+          order_status_webhook_url = ENV["STRIPE_STORE_#{id}_ORDER_STATUS_WEBHOOK_URL"].to_s
+          order_status_webhook_secret = ENV["STRIPE_STORE_#{id}_ORDER_STATUS_WEBHOOK_SECRET"].to_s
 
-          stores << StripeStore.new(key: id.downcase, name: name, secret_key: secret_key, from_address: from_address)
+          stores << StripeStore.new(key: id.downcase, name: name, secret_key: secret_key, from_address: from_address,
+                                     order_status_webhook_url: order_status_webhook_url,
+                                     order_status_webhook_secret: order_status_webhook_secret)
         end.sort_by(&:key)
       end
     end

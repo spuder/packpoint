@@ -1053,6 +1053,47 @@ a:hover {
   min-width: 0;
 }
 
+/* Editable tracking-code/email fields inside a .confirm-shipped-form -
+   styled to sit inline in the same .ks-tracking-box pill as the read-only
+   TRK display above them, so the "Mark as Shipped" step doesn't look like a
+   different control from the tracking info it's confirming. */
+.ks-tracking-code-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: 600 13.5px var(--font-head);
+  color: var(--text);
+}
+
+.ks-tracking-code-input:focus {
+  outline: none;
+}
+
+/* Locked in place after a successful "Mark as Shipped" - see
+   .confirm-shipped-form's submit handler in orders.rhtml. */
+.ks-tracking-code-input:read-only {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* curl command shown by the "Info" button next to Mark as Shipped - see
+   .confirm-shipped-info-btn in orders.rhtml. */
+.confirm-shipped-preview {
+  margin: 8px 0 0;
+  padding: 11px 14px;
+  border-radius: var(--chip);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* Footer */
 .ks-footer {
   display: flex;

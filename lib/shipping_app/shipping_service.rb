@@ -1,3 +1,5 @@
+require 'uri'
+
 module ShippingApp
     # Raised for our own request-shape problems (e.g. an international buy
     # with no customs items) - as opposed to EasyPost::Errors::EasyPostError,
@@ -237,12 +239,51 @@ module ShippingApp
         parcel_override.slice(*required)
       end
 
+      # Direct carrier tracking pages, keyed by the same QUOTED_CARRIERS
+      # family names - used instead of EasyPost's own tracker.public_url
+      # (which redirects through an easypost.com-branded page) so a customer
+      # clicking "Track your package" lands on USPS/FedEx/UPS/DHL's own
+      # site, not EasyPost's.
+      CARRIER_TRACKING_URL_TEMPLATES = {
+        'usps' => 'https://tools.usps.com/go/TrackConfirmAction?tLabels=%s',
+        'fedex' => 'https://www.fedex.com/fedextrack/?trknbr=%s',
+        'ups' => 'https://www.ups.com/track?tracknum=%s',
+        'dhl' => 'https://www.dhl.com/us-en/home/tracking.html?tracking-id=%s'
+      }.freeze
+
+      # carrier/tracking_url here are the actual outcome of the purchase, not
+      # an echo of what was requested - pick_rate can silently fall back to a
+      # different carrier family than asked for (see its comment), so this is
+      # the only place that knows for sure what was really bought. Callers
+      # that need to tell a customer/store which carrier shipped (e.g. the
+      # Stripe "Mark as Shipped" confirmation - see App#mark_stripe_order_shipped)
+      # rely on this being accurate rather than re-deriving it from the form.
       def buy_shipment(shipment, carrier)
-        bought_shipment = @client.shipment.buy(shipment.id, rate: pick_rate(shipment, carrier))
+        rate = pick_rate(shipment, carrier)
+        bought_shipment = @client.shipment.buy(shipment.id, rate: rate)
+        family = carrier_family(rate.carrier)
+
         {
           tracking_code: bought_shipment.tracking_code,
-          label_url: bought_shipment.postage_label.label_url
+          label_url: bought_shipment.postage_label.label_url,
+          carrier: family,
+          tracking_url: carrier_tracking_url(family, bought_shipment.tracking_code)
         }
+      end
+
+      # Maps EasyPost's actual carrier name on the bought rate (e.g.
+      # "FedExDefault", "UPSDAP") back to the QUOTED_CARRIERS family it
+      # belongs to (e.g. "fedex", "ups") - same prefix matching as
+      # cheapest_rate, just run in the other direction once a rate is chosen.
+      def carrier_family(raw_carrier)
+        QUOTED_CARRIERS.find { |family| raw_carrier.to_s.downcase.start_with?(family) } || raw_carrier.to_s.downcase
+      end
+
+      def carrier_tracking_url(carrier, tracking_code)
+        template = CARRIER_TRACKING_URL_TEMPLATES[carrier.to_s.downcase]
+        return nil if template.nil? || tracking_code.to_s.empty?
+
+        format(template, URI.encode_www_form_component(tracking_code))
       end
 
       # The requested carrier family's cheapest rate - but if this shipment

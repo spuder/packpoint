@@ -188,6 +188,9 @@
                         style="display:none;">
                         <input type="hidden" name="store_key" value="<%= order.store_key %>">
                         <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                        <input type="hidden" name="shipping_name" value="<%= order.address_dict[:recipient_name] %>">
+                        <input type="hidden" name="email"
+                          value="<%= order.recipient_email unless order.recipient_email.to_s.empty? %>">
                         <label class="ks-select-label">Tracking code (bought outside PackPoint)</label>
                         <input class="ks-input" type="text" name="tracking_code" placeholder="Tracking code" required>
                         <div class="mark-shipped-status" style="display:none;"></div>
@@ -234,7 +237,44 @@
                       <a class="ks-btn-outline label-link" href="<%= label[:label_url] %>" target="_blank">View</a>
                     </div>
                     <div class="ks-print-status" style="display:none;"></div>
-                    <% elsif status=='intl' %>
+                    <% if order.store_type == 'stripe' %>
+                      <!-- The normal "mark as shipped" step - a label was just bought through
+                           PackPoint (this session), so carrier/label_url/tracking_url are all
+                           already known (see ShippingService#buy_shipment) and just need
+                           confirming, not re-entering. Separate from the kebab-menu
+                           "Mark as Shipped..." form above, which is for labels bought outside
+                           PackPoint and has no carrier to report - see /confirm_shipped vs
+                           /mark_shipped in app.rb. -->
+                      <form class="confirm-shipped-form" action="/confirm_shipped/<%= order.order_number %>"
+                        method="post">
+                        <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                        <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                        <input type="hidden" name="carrier" class="confirm-carrier-field" value="<%= label[:carrier] %>">
+                        <input type="hidden" name="label_url" class="confirm-label-url-field"
+                          value="<%= label[:label_url] %>">
+                        <input type="hidden" name="tracking_url" class="confirm-tracking-url-field"
+                          value="<%= label[:tracking_url] %>">
+                        <div class="ks-tracking-box">
+                          <span class="ks-tracking-label">TRK</span>
+                          <input class="ks-tracking-code-input confirm-tracking-code-field" type="text"
+                            name="tracking_code" value="<%= label[:tracking_code] %>" required>
+                        </div>
+                        <!-- Editable + visible (unlike the other forms' hidden "email") so the
+                             operator can redirect who gets notified before confirming shipment. -->
+                        <div class="ks-tracking-box">
+                          <span class="ks-tracking-label">EMAIL</span>
+                          <input class="ks-tracking-code-input confirm-email-field" type="text" name="email"
+                            value="<%= order.recipient_email %>" placeholder="customer@example.com">
+                        </div>
+                        <div class="ks-buy-actions-row">
+                          <button type="submit" class="ks-btn-primary confirm-shipped-btn">Mark as Shipped</button>
+                          <button type="button" class="ks-btn-outline confirm-shipped-info-btn">Info</button>
+                        </div>
+                        <div class="confirm-shipped-status mark-shipped-status" style="display:none;"></div>
+                        <pre class="confirm-shipped-preview" style="display:none;"></pre>
+                      </form>
+                      <% end %>
+                        <% elsif status=='intl' %>
                       <% customs_items = customs_items_for(order); customs_missing = customs_items.any? { |item| item[:missing] } %>
                         <div class="ks-verify-box" data-order-number="<%= order.order_number %>" data-pending="true">
                           <div class="ks-verify-status">Address not checked yet</div>
@@ -335,7 +375,36 @@
                               <a class="ks-btn-outline label-link" href="#" target="_blank">View</a>
                             </div>
                             <div class="ks-print-status" style="display:none;"></div>
-                            <% else %>
+                            <% if order.store_type == 'stripe' %>
+                              <!-- Revealed/filled in by the buy-label-form's submit handler once a
+                                   label is actually bought this pageview - see
+                                   .confirm-shipped-form in the script block below. -->
+                              <form class="confirm-shipped-form" action="/confirm_shipped/<%= order.order_number %>"
+                                method="post" style="display:none;">
+                                <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                                <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                                <input type="hidden" name="carrier" class="confirm-carrier-field" value="">
+                                <input type="hidden" name="label_url" class="confirm-label-url-field" value="">
+                                <input type="hidden" name="tracking_url" class="confirm-tracking-url-field" value="">
+                                <div class="ks-tracking-box">
+                                  <span class="ks-tracking-label">TRK</span>
+                                  <input class="ks-tracking-code-input confirm-tracking-code-field" type="text"
+                                    name="tracking_code" value="" required>
+                                </div>
+                                <div class="ks-tracking-box">
+                                  <span class="ks-tracking-label">EMAIL</span>
+                                  <input class="ks-tracking-code-input confirm-email-field" type="text" name="email"
+                                    value="<%= order.recipient_email %>" placeholder="customer@example.com">
+                                </div>
+                                <div class="ks-buy-actions-row">
+                                  <button type="submit" class="ks-btn-primary confirm-shipped-btn">Mark as Shipped</button>
+                                  <button type="button" class="ks-btn-outline confirm-shipped-info-btn">Info</button>
+                                </div>
+                                <div class="confirm-shipped-status mark-shipped-status" style="display:none;"></div>
+                                <pre class="confirm-shipped-preview" style="display:none;"></pre>
+                              </form>
+                              <% end %>
+                                <% else %>
                         <div class="ks-hint-box">Domestic (US)</div>
                         <form class="buy-label-form" action="/buy_label/<%= order.order_number %>" method="post">
                           <input type="hidden" name="store_type" value="<%= order.store_type %>">
@@ -394,7 +463,36 @@
                           <a class="ks-btn-outline label-link" href="#" target="_blank">View</a>
                         </div>
                         <div class="ks-print-status" style="display:none;"></div>
-                        <% end %>
+                        <% if order.store_type == 'stripe' %>
+                          <!-- Revealed/filled in by the buy-label-form's submit handler once a
+                               label is actually bought this pageview - see .confirm-shipped-form
+                               in the script block below. -->
+                          <form class="confirm-shipped-form" action="/confirm_shipped/<%= order.order_number %>"
+                            method="post" style="display:none;">
+                            <input type="hidden" name="store_key" value="<%= order.store_key %>">
+                            <input type="hidden" name="payment_intent_id" value="<%= order.payment_intent_id %>">
+                            <input type="hidden" name="carrier" class="confirm-carrier-field" value="">
+                            <input type="hidden" name="label_url" class="confirm-label-url-field" value="">
+                            <input type="hidden" name="tracking_url" class="confirm-tracking-url-field" value="">
+                            <div class="ks-tracking-box">
+                              <span class="ks-tracking-label">TRK</span>
+                              <input class="ks-tracking-code-input confirm-tracking-code-field" type="text"
+                                name="tracking_code" value="" required>
+                            </div>
+                            <div class="ks-tracking-box">
+                              <span class="ks-tracking-label">EMAIL</span>
+                              <input class="ks-tracking-code-input confirm-email-field" type="text" name="email"
+                                value="<%= order.recipient_email %>" placeholder="customer@example.com">
+                            </div>
+                            <div class="ks-buy-actions-row">
+                              <button type="submit" class="ks-btn-primary confirm-shipped-btn">Mark as Shipped</button>
+                              <button type="button" class="ks-btn-outline confirm-shipped-info-btn">Info</button>
+                            </div>
+                            <div class="confirm-shipped-status mark-shipped-status" style="display:none;"></div>
+                            <pre class="confirm-shipped-preview" style="display:none;"></pre>
+                          </form>
+                          <% end %>
+                            <% end %>
                 </div>
               </div>
             </div>
@@ -571,6 +669,20 @@
                 warningBox.textContent = data.warning;
                 warningBox.style.display = 'block';
               }
+
+              // Stripe orders only (see the confirm-shipped-form's own
+              // guard in the .rhtml) - carrier/tracking_url are this
+              // purchase's actual outcome (ShippingService#buy_shipment),
+              // not re-derived from the form, so the confirmation step
+              // below always has real data to report.
+              var confirmForm = box.querySelector('.confirm-shipped-form');
+              if (confirmForm) {
+                confirmForm.querySelector('.confirm-tracking-code-field').value = data.tracking_code || '';
+                confirmForm.querySelector('.confirm-carrier-field').value = data.carrier || '';
+                confirmForm.querySelector('.confirm-label-url-field').value = data.label_url || '';
+                confirmForm.querySelector('.confirm-tracking-url-field').value = data.tracking_url || '';
+                confirmForm.style.display = 'block';
+              }
             })
             .catch(function (error) {
               console.error('Error:', error);
@@ -578,6 +690,115 @@
               errorBox.style.display = 'block';
               submitBtn.disabled = false;
               submitBtn.textContent = originalLabel;
+            });
+        });
+      });
+
+      // "Mark as Shipped" after buying a label through PackPoint - the
+      // normal path (see POST /confirm_shipped in app.rb). Distinct from
+      // the kebab-menu "Mark as Shipped..." form below, which is for labels
+      // bought outside PackPoint and never has a carrier to report. Locks
+      // in place on success (tracking field read-only, button disabled)
+      // rather than reloading, since the order stays visible in the
+      // unshipped list until the next real page load either way.
+      document.querySelectorAll('.confirm-shipped-form').forEach(function (form) {
+        var trackingInput = form.querySelector('.confirm-tracking-code-field');
+        var emailInput = form.querySelector('.confirm-email-field');
+        var submitBtn = form.querySelector('.confirm-shipped-btn');
+        var statusBox = form.querySelector('.confirm-shipped-status');
+
+        // Should never happen (every order reaching PackPoint has a
+        // recipient email) but if one somehow doesn't, don't let the
+        // operator fire a webhook with nowhere to send it - keep the button
+        // disabled until an email is typed in.
+        function syncSubmitState() {
+          submitBtn.disabled = emailInput.value.trim() === '';
+        }
+
+        emailInput.addEventListener('input', syncSubmitState);
+        syncSubmitState();
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+
+          var originalLabel = submitBtn.textContent;
+
+          statusBox.className = 'confirm-shipped-status mark-shipped-status';
+          statusBox.style.display = 'none';
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Marking Shipped…';
+
+          fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+            .then(parseJsonResponse)
+            .then(function (result) {
+              var data = result.data;
+              if (!result.ok || data.success === false) {
+                throw new Error(data.message || 'Failed to mark as shipped');
+              }
+              trackingInput.readOnly = true;
+              emailInput.readOnly = true;
+              submitBtn.textContent = 'Shipped ✓';
+              statusBox.textContent = 'Marked as shipped.';
+              statusBox.classList.add('mark-shipped-status-ok');
+              statusBox.style.display = 'block';
+            })
+            .catch(function (error) {
+              console.error('Error:', error);
+              statusBox.textContent = error.message;
+              statusBox.classList.add('mark-shipped-status-error');
+              statusBox.style.display = 'block';
+              submitBtn.textContent = originalLabel;
+              syncSubmitState();
+            });
+        });
+
+        // "Info" - shows the exact curl command /confirm_shipped's webhook
+        // step would send (URL, headers with a redacted secret, JSON body -
+        // see OrderStatusNotifier#preview), built from whatever's currently
+        // in the form (including hand-edited tracking code/email), without
+        // sending it or touching Stripe. Toggles the same box on repeat
+        // clicks rather than re-fetching every time.
+        var infoBtn = form.querySelector('.confirm-shipped-info-btn');
+        var previewBox = form.querySelector('.confirm-shipped-preview');
+        var infoLoaded = false;
+
+        infoBtn.addEventListener('click', function () {
+          if (infoLoaded) {
+            previewBox.style.display = previewBox.style.display === 'none' ? 'block' : 'none';
+            return;
+          }
+
+          var originalLabel = infoBtn.textContent;
+          infoBtn.disabled = true;
+          infoBtn.textContent = 'Loading…';
+
+          fetch(form.action + '/preview', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+            .then(parseJsonResponse)
+            .then(function (result) {
+              var data = result.data;
+              if (!result.ok || data.success === false) {
+                throw new Error(data.message || 'Failed to load webhook preview');
+              }
+              previewBox.textContent = data.configured ? data.curl : '(nothing will be called - ' + data.reason + ')';
+              previewBox.style.display = 'block';
+              infoLoaded = true;
+            })
+            .catch(function (error) {
+              console.error('Error:', error);
+              previewBox.textContent = 'Could not load preview: ' + error.message;
+              previewBox.style.display = 'block';
+            })
+            .finally(function () {
+              infoBtn.disabled = false;
+              infoBtn.textContent = originalLabel;
             });
         });
       });

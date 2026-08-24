@@ -62,6 +62,10 @@ module ShippingApp
             puts "WARNING: STRIPE_STORE_#{store.key.upcase}_EASYPOST_FROM_ADDRESS is not set - " \
                  "buying a label for '#{store.name}' orders will fail"
           end
+          if store.order_status_webhook_url.to_s.empty? ^ store.order_status_webhook_secret.to_s.empty?
+            puts "WARNING: STRIPE_STORE_#{store.key.upcase}_ORDER_STATUS_WEBHOOK_URL and _SECRET must both be " \
+                 "set - the order-status webhook for '#{store.name}' will be skipped"
+          end
         end
       else
         puts "No Stripe stores configured (STRIPE_STORE_<id>_SECRET_KEY not set)"
@@ -275,11 +279,15 @@ module ShippingApp
 
       # Marks a Stripe order as shipped via the Stripe API (PaymentIntent
       # metadata - see ShippingApp::StripeOrdersAPI for why it's the
-      # PaymentIntent and not the Checkout Session). Buying the label
-      # already succeeded by the time this runs, so a failure here doesn't
-      # fail the request - but it's returned (rather than merely logged) so
-      # callers can surface it to the UI instead of the label appearing to
-      # have shipped fine when Stripe never got updated.
+      # PaymentIntent and not the Checkout Session). Shared by /confirm_shipped
+      # (the normal path - a label was just bought through PackPoint) and
+      # /mark_shipped (a label bought entirely outside PackPoint, tracking
+      # code pasted in by hand). A failure here doesn't fail the request that
+      # called it - but it's returned (rather than merely logged) so callers
+      # can surface it to the UI instead of appearing to have shipped fine
+      # when Stripe never got updated. Doesn't touch OrderStatusNotifier
+      # itself - see /confirm_shipped, the only caller that has a carrier to
+      # report and so the only one that notifies the store's webhook.
       def mark_stripe_order_shipped(store_key, payment_intent_id, label_result)
         store = find_stripe_store(store_key)
         unless store
@@ -407,18 +415,28 @@ module ShippingApp
         from_address_id = find_from_address(store_type, store_key)
         result = ShippingApp::ShippingService.new.create_label(order_number, order_data, from_address_id, parcel_override, shipment_id: shipment_id, carrier: carrier, customs_items: customs_items)
 
-        # Store the label information in the session
+        # Store the label information in the session - carrier/tracking_url
+        # ride along so a page reload still has everything the "Mark as
+        # Shipped" confirmation form needs (see order_status/views/orders.rhtml),
+        # not just what the original AJAX response handed the page directly.
         session[:orders] ||= {}
         session[:orders][order_number] = {
           tracking_code: result[:tracking_code],
-          label_url: result[:label_url]
+          label_url: result[:label_url],
+          carrier: result[:carrier],
+          tracking_url: result[:tracking_url]
         }
 
-        stripe_warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id], result) if store_type == 'stripe'
-
-        response_body = { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url] }
-        response_body[:warning] = "Label bought, but Stripe wasn't updated: #{stripe_warning}" if stripe_warning
-        response_body.to_json
+        # Buying a label no longer also marks the order shipped - that's a
+        # separate, explicit step (see /confirm_shipped) so the operator can
+        # confirm the label actually printed before the customer is told
+        # it's on its way. carrier/tracking_url come along for the ride so
+        # the "Mark as Shipped" button that appears next has everything it
+        # needs without re-deriving them - see ShippingService#buy_shipment
+        # for why carrier here is the real outcome, not just an echo of the
+        # form's carrier field.
+        { success: true, tracking_code: result[:tracking_code], label_url: result[:label_url],
+          carrier: result[:carrier], tracking_url: result[:tracking_url] }.to_json
       rescue ShippingApp::ValidationError => e
         status 422
         { success: false, message: e.message }.to_json
@@ -461,7 +479,10 @@ module ShippingApp
     # Marks a Stripe order shipped without buying a label through PackPoint
     # - for labels bought out-of-band (e.g. directly in EasyPost). Tindie
     # has no equivalent: its API is read-only, so there's nowhere to write
-    # this to - see ShippingApp::StripeOrdersAPI#mark_shipped.
+    # this to - see ShippingApp::StripeOrdersAPI#mark_shipped. No carrier is
+    # known here (nothing was bought through PackPoint to derive one from),
+    # so unlike /confirm_shipped this never notifies OrderStatusNotifier -
+    # it only updates Stripe.
     post '/mark_shipped/:order_number' do
       order_number = params[:order_number]
       store_key = params[:store_key]
@@ -480,6 +501,80 @@ module ShippingApp
         else
           { success: true }.to_json
         end
+      end
+    end
+
+    # The normal "mark as shipped" path: confirms a label that was just
+    # bought through PackPoint (/buy_label) is actually shipping, updates
+    # Stripe, and - unlike /mark_shipped above - notifies the store's
+    # order-status webhook (see ShippingApp::OrderStatusNotifier), since this
+    # is the one path that always has a real carrier (see
+    # ShippingService#buy_shipment). tracking_code is editable in the UI
+    # (rarely needed - defaults to what was actually bought), so it's read
+    # from params rather than re-derived from the session.
+    post '/confirm_shipped/:order_number' do
+      order_number = params[:order_number]
+      store_key = params[:store_key]
+      tracking_code = params[:tracking_code].to_s.strip
+      recipient_email = params[:email].to_s.strip
+      label_url = params[:label_url].to_s.empty? ? nil : params[:label_url]
+      puts "Confirming order #{order_number} shipped (store_key=#{store_key}, carrier=#{params[:carrier]}, payment_intent_id=#{params[:payment_intent_id]})"
+
+      content_type :json
+      if tracking_code.empty?
+        status 422
+        { success: false, message: 'Tracking code is required' }.to_json
+      elsif recipient_email.empty?
+        # Should never happen - every order reaching PackPoint has a
+        # recipient email - but the UI's own disabled-button guard (see
+        # orders.rhtml) can be bypassed, and OrderStatusNotifier needs
+        # somewhere to send the webhook's "email" field.
+        status 422
+        { success: false, message: 'Recipient email is required' }.to_json
+      else
+        warning = mark_stripe_order_shipped(store_key, params[:payment_intent_id],
+                                             { tracking_code: tracking_code, label_url: label_url })
+        if warning
+          status 422
+          { success: false, message: warning }.to_json
+        else
+          store = find_stripe_store(store_key)
+          ShippingApp::OrderStatusNotifier.notify_shipped(
+            store: store,
+            order_number: order_number,
+            recipient_email: recipient_email,
+            carrier: params[:carrier],
+            tracking_code: tracking_code,
+            tracking_url: params[:tracking_url]
+          ) if store
+          { success: true }.to_json
+        end
+      end
+    end
+
+    # Shows exactly what the order-status webhook above would send (URL +
+    # curl command), without sending it or touching Stripe - the "Info"
+    # button next to Mark as Shipped, so the operator can sanity-check
+    # store/order/email/tracking before actually confirming shipment. Reads
+    # the same (possibly hand-edited) form fields a real submit would.
+    post '/confirm_shipped/:order_number/preview' do
+      order_number = params[:order_number]
+      store = find_stripe_store(params[:store_key])
+
+      content_type :json
+      if store
+        preview = ShippingApp::OrderStatusNotifier.preview(
+          store: store,
+          order_number: order_number,
+          recipient_email: params[:email],
+          carrier: params[:carrier],
+          tracking_code: params[:tracking_code],
+          tracking_url: params[:tracking_url]
+        )
+        { success: true }.merge(preview).to_json
+      else
+        status 422
+        { success: false, message: "Unknown store '#{params[:store_key]}'" }.to_json
       end
     end
 
