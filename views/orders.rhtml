@@ -699,7 +699,16 @@
               // purchase's actual outcome (ShippingService#buy_shipment),
               // not re-derived from the form, so the confirmation step
               // below always has real data to report.
-              var confirmForm = box.querySelector('.confirm-shipped-form');
+              //
+              // Excludes .mark-shipped-form: the kebab menu's "label
+              // bought outside PackPoint" form also carries the
+              // .confirm-shipped-form class (they share bindConfirmShippedForms
+              // wiring and the /confirm_shipped endpoint) and sits earlier in
+              // the DOM, so a plain '.confirm-shipped-form' lookup here would
+              // grab it instead of the buy-flow's own form - it has no
+              // .confirm-label-url-field/.confirm-tracking-url-field, so
+              // filling those in below would throw.
+              var confirmForm = box.querySelector('.confirm-shipped-form:not(.mark-shipped-form)');
               if (confirmForm) {
                 confirmForm.querySelector('.confirm-tracking-code-field').value = data.tracking_code || '';
                 confirmForm.querySelector('.confirm-carrier-field').value = data.carrier || '';
