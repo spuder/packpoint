@@ -55,6 +55,8 @@ module ShippingApp
         shipment = create_shipment(order_number, order_data, from_address_id, parcel_override, customs_items)
         rates = QUOTED_CARRIERS.filter_map { |family| quote(shipment, family) }
         log_rate_gaps(shipment, rates)
+        puts "get_rates: quoted shipment #{shipment.id} for order #{order_number} - " \
+             "#{rates.length} quotable carrier(s): #{rates.map { |r| r[:carrier] }.join(', ')}"
         { shipment_id: shipment.id, rates: rates }
       end
 
@@ -67,7 +69,15 @@ module ShippingApp
       # form was already attached when that shipment was created). carrier
       # picks which of QUOTED_CARRIERS to buy from - defaults to USPS.
       def create_label(order_number, order_data, from_address_id, parcel_override = nil, shipment_id: nil, carrier: 'usps', customs_items: nil)
-        shipment = shipment_id ? @client.shipment.retrieve(shipment_id) : create_shipment(order_number, order_data, from_address_id, parcel_override, customs_items)
+        if shipment_id
+          shipment = @client.shipment.retrieve(shipment_id)
+          puts "create_label: buying against quoted shipment #{shipment.id} for order #{order_number} - " \
+               "#{Array(shipment.rates).length} rate(s) on retrieve (#{Array(shipment.rates).map(&:carrier).join(', ')})"
+        else
+          shipment = create_shipment(order_number, order_data, from_address_id, parcel_override, customs_items)
+          puts "create_label: created fresh shipment #{shipment.id} for order #{order_number} - " \
+               "#{Array(shipment.rates).length} rate(s) (#{Array(shipment.rates).map(&:carrier).join(', ')})"
+        end
         buy_shipment(shipment, carrier)
       end
 
@@ -248,6 +258,35 @@ module ShippingApp
       # rely on this being accurate rather than re-deriving it from the form.
       def buy_shipment(shipment, carrier)
         rate = pick_rate(shipment, carrier)
+
+        # Belt-and-suspenders for a shipment that comes back with an empty
+        # (or not-yet-carrier-matching) rates array here even though it had
+        # rates when quoted moments earlier - seen intermittently for
+        # shipments bought right after a /rate_label quote, and reliably
+        # fixed by refreshing the page and re-quoting. That symptom points
+        # at EasyPost rating not having fully settled by the time this
+        # GET-then-buy runs, not at anything mutable on our side (each
+        # request gets its own ShippingService/EasyPost::Client, so there's
+        # no shared state between requests to race on here). regenerate_rates
+        # (POST /shipments/:id/rerate) is EasyPost's own mechanism for
+        # forcing a re-rate, so try that once before failing outright - it's
+        # the same effect a manual refresh-and-retry has, just automatic.
+        if rate.nil?
+          puts "buy_shipment: no rate for carrier=#{carrier} on shipment #{shipment.id} " \
+               "(#{Array(shipment.rates).length} rate(s): #{Array(shipment.rates).map(&:carrier).join(', ')}); " \
+               "regenerating rates and retrying once"
+          shipment = @client.shipment.regenerate_rates(shipment.id)
+          rate = pick_rate(shipment, carrier)
+          puts "buy_shipment: after regenerate_rates, shipment #{shipment.id} has " \
+               "#{Array(shipment.rates).length} rate(s): #{Array(shipment.rates).map(&:carrier).join(', ')} - " \
+               "#{rate ? 'found a rate' : 'still no rate'}"
+        end
+
+        unless rate
+          Array(shipment.messages).each { |m| puts "  #{m.carrier}: #{m.type} - #{m.message}" }
+          raise EasyPost::Errors::FilteringError.new(EasyPost::Constants::NO_MATCHING_RATES)
+        end
+
         bought_shipment = @client.shipment.buy(shipment.id, rate: rate)
         family = carrier_family(rate.carrier)
 
@@ -270,13 +309,14 @@ module ShippingApp
       # The requested carrier family's cheapest rate - but if this shipment
       # has no rate at all for that family (e.g. it disappeared between
       # quoting and buying, or an unrecognized carrier was passed in), fall
-      # back first to USPS, then to the cheapest rate from any carrier,
-      # rather than failing the purchase outright.
+      # back first to USPS, then to the cheapest rate from any carrier.
+      # Returns nil (rather than raising) when the shipment has no rates at
+      # all yet - buy_shipment is what decides whether that's worth a
+      # regenerate-and-retry or a hard failure.
       def pick_rate(shipment, carrier)
         cheapest_rate(shipment, carrier) ||
           cheapest_rate(shipment, 'usps') ||
-          Array(shipment.rates).min_by { |rate| rate.rate.to_f } ||
-          raise(EasyPost::Errors::FilteringError.new(EasyPost::Constants::NO_MATCHING_RATES))
+          Array(shipment.rates).min_by { |rate| rate.rate.to_f }
       end
     end
   end
