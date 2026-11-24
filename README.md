@@ -19,8 +19,11 @@ Create a `.env` file with your settings. You can use the provided examples.
 Stripe support is optional and can pull orders from multiple Stripe stores/accounts at once - add a
 `STRIPE_STORE_<id>_NAME` / `STRIPE_STORE_<id>_SECRET_KEY` / `STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS` trio per
 store (see `.env.sample`). Orders are matched to Stripe Checkout Sessions that have collected a shipping
-address; "shipped" status, tracking code, and label URL are written back to Stripe as metadata on the
-PaymentIntent when you buy a label, so fulfillment state lives in Stripe rather than only in this app's session.
+address. Buying a label does not mark the order shipped: that's a separate **Mark as Shipped** step, so
+you can confirm the label actually printed first. Mark as Shipped writes "shipped" status, carrier, tracking
+code, and label URL back to Stripe as metadata on the PaymentIntent (so fulfillment state lives in Stripe,
+not this app), then sends the store's Shipped Notification webhook if one is configured. Until then, the
+purchased label is only remembered in the browser session.
 
 Each store ships from its own return address: Tindie orders use `TINDIE_EASYPOST_FROM_ADDRESS`, and each Stripe
 store uses its own `STRIPE_STORE_<id>_EASYPOST_FROM_ADDRESS`. Both are EasyPost address IDs (`adr_...`) for
